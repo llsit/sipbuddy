@@ -26,7 +26,7 @@ android {
         release {
             optimization {
                 enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
+                packageScope = setOf("**")
             }
         }
     }
@@ -37,6 +37,7 @@ android {
         isDebuggable = false
         matchingFallbacks += "release"
         testProguardFiles("benchmark-test.pro")
+        proguardFiles("benchmark.pro")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
