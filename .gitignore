@@ -39,3 +39,6 @@ google-services.json
 *.db-wal
 *.sqlite
 *.sqlite3
+
+# Local Python benchmark caches
+__pycache__/

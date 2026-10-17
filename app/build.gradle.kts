@@ -20,8 +20,6 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    testBuildType = if (providers.gradleProperty("sipbuddy.benchmark").isPresent) "benchmark" else "debug"
-
     buildTypes {
         release {
             optimization {
@@ -36,8 +34,6 @@ android {
         signingConfig = signingConfigs.getByName("debug")
         isDebuggable = false
         matchingFallbacks += "release"
-        testProguardFiles("benchmark-test.pro")
-        proguardFiles("benchmark.pro")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -47,8 +43,6 @@ android {
         abortOnError = true
         checkReleaseBuilds = true
         checkDependencies = true
-        xmlReport = true
-        htmlReport = true
         lintConfig = file("lint.xml")
     }
     buildFeatures {
