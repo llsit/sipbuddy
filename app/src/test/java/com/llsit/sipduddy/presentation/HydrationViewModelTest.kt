@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModelStore
 import com.llsit.sipduddy.domain.model.DateContext
 import com.llsit.sipduddy.domain.model.DrinkType
 import com.llsit.sipduddy.domain.model.HydrationSettings
+import com.llsit.sipduddy.domain.model.DrinkEntry
+import com.llsit.sipduddy.domain.usecase.EditDrinkUseCase
+import com.llsit.sipduddy.domain.usecase.RestoreDrinkUseCase
 import com.llsit.sipduddy.domain.usecase.AddDrinkUseCase
 import com.llsit.sipduddy.domain.usecase.CalculateWeeklyHydrationUseCase
 import com.llsit.sipduddy.domain.usecase.DeleteDrinkUseCase
@@ -55,6 +58,7 @@ class HydrationViewModelTest {
         drinks: FakeDrinkRepository = FakeDrinkRepository(),
         settings: FakeHydrationSettingsRepository = FakeHydrationSettingsRepository(),
         scheduler: FakeReminderScheduler = FakeReminderScheduler(),
+        collectState: Boolean = true,
     ): HydrationViewModel {
         val observe = ObserveHydrationOverviewUseCase(
             drinks,
@@ -67,10 +71,12 @@ class HydrationViewModelTest {
             observe,
             AddDrinkUseCase(drinks, clock),
             DeleteDrinkUseCase(drinks),
-            SaveHydrationSettingsUseCase(settings, scheduler)
+            SaveHydrationSettingsUseCase(settings, scheduler),
+            EditDrinkUseCase(drinks),
+            RestoreDrinkUseCase(drinks)
         )
         store.put("subject", viewModel)
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.state.collect { } }
+        if (collectState) backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.state.collect { } }
         runCurrent()
         return viewModel
     }
@@ -174,5 +180,80 @@ class HydrationViewModelTest {
         viewModel.add(DrinkType.WATER, 250)
         runCurrent()
         assertEquals(1, repository.entries.value.size)
+    }
+
+    @Test fun undoRestoresRecordAndIgnoresDuplicateOrStaleActions() = runTest {
+        val entry = DrinkEntry(8, DrinkType.TEA, 300, clock.millis())
+        val repo = FakeDrinkRepository().apply { entries.value = listOf(entry) }
+        val vm = createViewModel(repo)
+        vm.delete(8); runCurrent()
+        val id = vm.state.value.message!!.id
+        assertTrue(repo.entries.value.isEmpty())
+        vm.undoDelete(id - 1); runCurrent()
+        assertTrue(repo.entries.value.isEmpty())
+        vm.undoDelete(id); vm.undoDelete(id); runCurrent()
+        assertEquals(listOf(entry), repo.entries.value)
+        assertEquals(300L, vm.state.value.overview!!.totalMl)
+    }
+    @Test fun undoFailureOffersRetryAndRetainsSnapshot() = runTest {
+        val entry = DrinkEntry(8, DrinkType.WATER, 250, clock.millis())
+        val repo = FakeDrinkRepository().apply { entries.value = listOf(entry) }
+        val vm = createViewModel(repo)
+        vm.delete(8); runCurrent()
+        repo.writeFailure = IOException()
+        vm.undoDelete(vm.state.value.message!!.id); runCurrent()
+        assertEquals(entry, vm.state.value.message!!.undoEntry)
+        repo.writeFailure = null
+        vm.undoDelete(vm.state.value.message!!.id); runCurrent()
+        assertEquals(listOf(entry), repo.entries.value)
+    }
+    @Test fun editUsesExistingRecordAndFailureKeepsEditorOpen() = runTest {
+        val entry = DrinkEntry(8, DrinkType.WATER, 250, clock.millis() - 86400000)
+        val repo = FakeDrinkRepository().apply { entries.value = listOf(entry) }
+        val vm = createViewModel(repo)
+        vm.showEditDrinkSheet(entry)
+        repo.writeFailure = IOException()
+        vm.saveDrink(DrinkType.MILK, 400); runCurrent()
+        assertTrue(vm.state.value.isAddSheetVisible)
+        repo.writeFailure = null
+        vm.saveDrink(DrinkType.MILK, 400); runCurrent()
+        assertFalse(vm.state.value.isAddSheetVisible)
+        assertEquals(listOf(entry.copy(drink = DrinkType.MILK, amountMl = 400)), repo.entries.value)
+        assertEquals(0L, vm.state.value.overview!!.totalMl)
+    }
+    @Test fun pressedUndoWaitsForInFlightWrite() = runTest {
+        val entry = DrinkEntry(8, DrinkType.WATER, 250, clock.millis())
+        val repo = FakeDrinkRepository().apply { entries.value = listOf(entry) }
+        val vm = createViewModel(repo)
+        vm.delete(8); runCurrent()
+        val id = vm.state.value.message!!.id
+        val gate = CompletableDeferred<Unit>()
+        repo.addGate = gate
+        vm.add(DrinkType.TEA, 150); runCurrent()
+        vm.undoDelete(id); runCurrent()
+        assertTrue(repo.entries.value.isEmpty())
+        gate.complete(Unit); runCurrent()
+        assertTrue(entry in repo.entries.value)
+        assertEquals(2, repo.entries.value.size)
+    }
+
+    @Test fun returningFromBackgroundKeepsLoadedScreenWhileQueryRestarts() = runTest {
+        val repo = FakeDrinkRepository()
+        val vm = createViewModel(repo, collectState = false)
+        val subscription = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect { } }
+        runCurrent()
+        assertNotNull(vm.state.value.overview)
+        subscription.cancel()
+        testScheduler.advanceTimeBy(5_001)
+        runCurrent()
+        val gate = CompletableDeferred<Unit>()
+        repo.observationGate = gate
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect { } }
+        runCurrent()
+        assertFalse("Reload must not remove the settings screen and its unsaved draft", vm.state.value.loading)
+        assertNotNull(vm.state.value.overview)
+        gate.complete(Unit)
+        runCurrent()
+        assertFalse(vm.state.value.loading)
     }
 }

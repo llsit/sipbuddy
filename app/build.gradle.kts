@@ -32,6 +32,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+    lint {
+        abortOnError = true
+        checkReleaseBuilds = true
+        checkDependencies = true
+        xmlReport = true
+        htmlReport = true
+        lintConfig = file("lint.xml")
+    }
     buildFeatures {
         compose = true
     }

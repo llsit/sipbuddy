@@ -22,6 +22,7 @@ internal fun HistoryScreen(
     overview: HydrationOverview,
     busy: Boolean,
     modifier: Modifier = Modifier,
+    onEdit: (DrinkEntry) -> Unit,
     onDelete: (DrinkEntry) -> Unit
 ) {
     LazyColumn(
@@ -55,7 +56,7 @@ internal fun HistoryScreen(
                 Text("ยังไม่มีรายการ", fontSize = 13.sp, color = Ink.copy(alpha = .5f))
             }
             items(day.entries, key = { it.id }, contentType = { "drink_entry" }) { entry ->
-                DrinkEntryRow(entry, overview.dateContext.zone, busy, onDelete)
+                DrinkEntryRow(entry, overview.dateContext.zone, busy, onEdit, onDelete)
             }
         }
     }

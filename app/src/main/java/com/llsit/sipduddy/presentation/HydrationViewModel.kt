@@ -2,6 +2,10 @@ package com.llsit.sipduddy.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.llsit.sipduddy.domain.model.DrinkEntry
+import com.llsit.sipduddy.domain.usecase.EditDrinkUseCase
+import com.llsit.sipduddy.domain.usecase.RestoreDrinkUseCase
+import kotlinx.coroutines.sync.withLock
 import com.llsit.sipduddy.domain.model.DrinkType
 import com.llsit.sipduddy.domain.model.HydrationSettings
 import com.llsit.sipduddy.domain.model.SaveHydrationSettingsResult
@@ -20,7 +24,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -32,19 +35,22 @@ class HydrationViewModel(
     private val addDrinkUseCase: AddDrinkUseCase,
     private val deleteDrinkUseCase: DeleteDrinkUseCase,
     private val saveHydrationSettingsUseCase: SaveHydrationSettingsUseCase,
+    private val editDrinkUseCase: EditDrinkUseCase,
+    private val restoreDrinkUseCase: RestoreDrinkUseCase,
 ) : ViewModel() {
     private val retryVersion = MutableStateFlow(0)
     private val isSaving = MutableStateFlow(false)
     private val isAddSheetVisible = MutableStateFlow(false)
+    private val editingEntry = MutableStateFlow<DrinkEntry?>(null)
     private val message = MutableStateFlow<UiMessage?>(null)
     private val messageId = AtomicLong()
     private val actionMutex = Mutex()
 
     @OptIn(ExperimentalCoroutinesApi::class)
+    // stateIn retains the loaded screen on resume; initial loading comes from HydrationUiState.
     private val overview = retryVersion.flatMapLatest {
         observeHydrationOverviewUseCase()
             .map<_, OverviewLoadState> { OverviewLoadState.Loaded(it) }
-            .onStart { emit(OverviewLoadState.Loading) }
             .catch { exception ->
                 if (exception is CancellationException) throw exception
                 emit(OverviewLoadState.Failed)
@@ -55,14 +61,16 @@ class HydrationViewModel(
         overview,
         isSaving,
         isAddSheetVisible,
-        message
-    ) { loaded, saving, sheetVisible, currentMessage ->
+        message,
+        editingEntry
+    ) { loaded, saving, sheetVisible, currentMessage, editing ->
         HydrationUiState(
             loading = loaded is OverviewLoadState.Loading,
             overview = (loaded as? OverviewLoadState.Loaded)?.overview,
             isSaving = saving,
             isAddSheetVisible = sheetVisible,
             message = currentMessage,
+            editingEntry = editing,
             loadError = if (loaded is OverviewLoadState.Failed) "อ่านข้อมูลไม่สำเร็จ กรุณาลองใหม่" else null,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HydrationUiState())
@@ -72,7 +80,28 @@ class HydrationViewModel(
     }
 
     fun showAddDrinkSheet() {
-        if (!isSaving.value) isAddSheetVisible.value = true
+        if (!isSaving.value) {
+            editingEntry.value = null
+            isAddSheetVisible.value = true
+        }
+    }
+
+    fun showEditDrinkSheet(entry: DrinkEntry) {
+        if (!isSaving.value) {
+            editingEntry.value = entry
+            isAddSheetVisible.value = true
+        }
+    }
+
+    fun saveDrink(drink: DrinkType, amountMl: Int) {
+        val editing = editingEntry.value
+        if (editing == null) add(drink, amountMl)
+        else launchAction {
+            editDrinkUseCase(editing.id, drink, amountMl)
+            isAddSheetVisible.value = false
+            editingEntry.value = null
+            showMessage("แก้ไขรายการแล้ว")
+        }
     }
 
     fun dismissAddDrinkSheet() {
@@ -86,8 +115,29 @@ class HydrationViewModel(
     }
 
     fun delete(id: Long) = launchAction {
-        deleteDrinkUseCase(id)
-        showMessage("ลบรายการแล้ว")
+        val deleted = deleteDrinkUseCase(id)
+        if (deleted != null) message.value = UiMessage(messageId.incrementAndGet(), "ลบรายการแล้ว", deleted)
+    }
+
+    fun undoDelete(id: Long) {
+        val pending = message.value?.takeIf { it.id == id && it.undoEntry != null } ?: return
+        if (!message.compareAndSet(pending, null)) return
+        viewModelScope.launch {
+            // Queue a pressed Undo rather than dropping it while another write holds the mutex.
+            actionMutex.withLock {
+                isSaving.value = true
+                try {
+                    val restored = restoreDrinkUseCase(requireNotNull(pending.undoEntry))
+                    showMessage(if (restored) "คืนรายการแล้ว" else "รายการนี้มีอยู่แล้ว")
+                } catch (exception: CancellationException) {
+                    throw exception
+                } catch (_: Exception) {
+                    message.value = pending.copy(id = messageId.incrementAndGet(), text = "คืนรายการไม่สำเร็จ ลองอีกครั้ง")
+                } finally {
+                    isSaving.value = false
+                }
+            }
+        }
     }
 
     fun save(settings: HydrationSettings) = launchAction {

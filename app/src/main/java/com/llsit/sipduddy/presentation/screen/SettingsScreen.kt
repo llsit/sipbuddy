@@ -1,7 +1,6 @@
 package com.llsit.sipduddy.presentation.screen
 
 import android.Manifest
-import android.app.TimePickerDialog
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -39,6 +38,8 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import com.llsit.sipduddy.domain.model.HydrationSettings
 import com.llsit.sipduddy.domain.model.ReminderSettings
 import com.llsit.sipduddy.domain.model.ReminderTime
+import com.llsit.sipduddy.domain.model.QuietHours
+import com.llsit.sipduddy.presentation.component.ReminderSettingsEditor
 import com.llsit.sipduddy.presentation.component.EmptyState
 import com.llsit.sipduddy.presentation.component.SoftCard
 import com.llsit.sipduddy.presentation.notification.NotificationPermissionController
@@ -52,8 +53,16 @@ internal fun SettingsScreen(
 ) {
     val prefs = settings
     var goal by rememberSaveable(prefs.goalMl) { mutableStateOf(prefs.goalMl.toString()) }
-    var hour by rememberSaveable(prefs.reminder.time.hour) { mutableIntStateOf(prefs.reminder.time.hour) }
-    var minute by rememberSaveable(prefs.reminder.time.minute) { mutableIntStateOf(prefs.reminder.time.minute) }
+    val savedTimes = prefs.reminder.times.joinToString(",") { "${it.hour * 60 + it.minute}" }
+    var timesValue by rememberSaveable(savedTimes) { mutableStateOf(savedTimes) }
+    val times = timesValue.split(',').map { it.toInt() }.map { ReminderTime(it / 60, it % 60) }
+    var quietEnabled by rememberSaveable(prefs.reminder.quietHours.enabled) { mutableStateOf(prefs.reminder.quietHours.enabled) }
+    val savedStart = prefs.reminder.quietHours.start.hour * 60 + prefs.reminder.quietHours.start.minute
+    val savedEnd = prefs.reminder.quietHours.end.hour * 60 + prefs.reminder.quietHours.end.minute
+    var quietStart by rememberSaveable(savedStart) { mutableIntStateOf(savedStart) }
+    var quietEnd by rememberSaveable(savedEnd) { mutableIntStateOf(savedEnd) }
+    var stopAtGoal by rememberSaveable(prefs.reminder.stopAtGoal) { mutableStateOf(prefs.reminder.stopAtGoal) }
+    val quiet = QuietHours(quietEnabled, ReminderTime(quietStart / 60, quietStart % 60), ReminderTime(quietEnd / 60, quietEnd % 60))
     var enabled by rememberSaveable(prefs.reminder.enabled) { mutableStateOf(prefs.reminder.enabled) }
     val context = LocalContext.current
     val permissionController = remember(context) { NotificationPermissionController(context) }
@@ -94,21 +103,16 @@ internal fun SettingsScreen(
                 Text("เตือนให้จิบน้ำ", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Switch(checked = enabled, onCheckedChange = { enabled = it }, enabled = !busy)
             }
-            OutlinedButton(enabled = !busy, onClick = {
-                TimePickerDialog(
-                    context,
-                    { _, h, m -> hour = h; minute = m },
-                    hour,
-                    minute,
-                    true
-                ).show()
-            }, modifier = Modifier.fillMaxWidth()) {
-                Text("ทุกวัน เวลา %02d:%02d".format(hour, minute))
+            ReminderSettingsEditor(busy, times, quiet, stopAtGoal,
+                onTimesChange = { list -> timesValue = list.joinToString(",") { "${it.hour * 60 + it.minute}" } },
+                onQuietChange = {
+                    quietEnabled = it.enabled
+                    quietStart = it.start.hour * 60 + it.start.minute
+                    quietEnd = it.end.hour * 60 + it.end.minute
+                }, onStopAtGoalChange = { stopAtGoal = it })
+            if (enabled && times.none { !quiet.contains(java.time.LocalTime.of(it.hour, it.minute)) }) {
+                Text("เลือกเวลาเตือนอย่างน้อยหนึ่งช่วงนอกช่วงพัก", color = MaterialTheme.colorScheme.error)
             }
-            Text(
-                "แจ้งเตือนวันละครั้ง เวลาจริงอาจคลาดเคลื่อนตามการประหยัดแบตเตอรี่",
-                fontSize = 12.sp
-            )
             if (!permissionGranted) {
                 Text(
                     "ยังไม่ได้เปิดสิทธิ์แจ้งเตือน",
@@ -130,12 +134,13 @@ internal fun SettingsScreen(
                     onSave(
                         HydrationSettings(
                             it,
-                            ReminderSettings(enabled, ReminderTime(hour, minute))
+                            ReminderSettings(enabled, times.sortedBy { it.hour * 60 + it.minute }, quiet, stopAtGoal)
                         )
                     )
                 }
             },
-            enabled = !busy && goal.toIntOrNull() in HydrationSettings.MIN_GOAL_ML..HydrationSettings.MAX_GOAL_ML,
+            enabled = !busy && goal.toIntOrNull() in HydrationSettings.MIN_GOAL_ML..HydrationSettings.MAX_GOAL_ML
+                && (!enabled || times.any { !quiet.contains(java.time.LocalTime.of(it.hour, it.minute)) }),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp)

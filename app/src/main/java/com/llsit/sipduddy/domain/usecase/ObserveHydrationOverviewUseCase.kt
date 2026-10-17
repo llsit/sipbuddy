@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 
 class ObserveHydrationOverviewUseCase(
     private val drinkRepository: DrinkRepository,
@@ -25,15 +26,11 @@ class ObserveHydrationOverviewUseCase(
             val start =
                 context.date.minusDays(6).atStartOfDay(context.zone).toInstant().toEpochMilli()
             val end = context.date.plusDays(1).atStartOfDay(context.zone).toInstant().toEpochMilli()
-            combine(
-                drinkRepository.observeEntries(start, end),
-                settingsRepository.settings
-            ) { entries, settings ->
-                HydrationOverview(
-                    context,
-                    settings,
-                    calculateWeeklyHydrationUseCase(entries, context)
-                )
+            val days = drinkRepository.observeEntries(start, end)
+                .distinctUntilChanged()
+                .map { calculateWeeklyHydrationUseCase(it, context) }
+            combine(days, settingsRepository.settings.distinctUntilChanged()) { summaries, settings ->
+                HydrationOverview(context, settings, summaries)
             }
         }.flowOn(dispatcher)
 }

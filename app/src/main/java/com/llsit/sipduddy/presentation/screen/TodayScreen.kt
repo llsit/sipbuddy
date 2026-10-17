@@ -45,6 +45,7 @@ internal fun TodayScreen(
     busy: Boolean,
     modifier: Modifier = Modifier,
     onAdd: () -> Unit,
+    onEdit: (DrinkEntry) -> Unit,
     onDelete: (DrinkEntry) -> Unit
 ) {
     LazyColumn(
@@ -125,7 +126,7 @@ internal fun TodayScreen(
             contentType = "empty"
         ) { EmptyState("เริ่มต้นด้วยน้ำสักแก้ว", "แตะบันทึกเครื่องดื่ม เพื่อเติมหยดแรกของวัน") }
         items(overview.today.entries, key = { it.id }, contentType = { "drink_entry" }) { entry ->
-            DrinkEntryRow(entry, overview.dateContext.zone, busy, onDelete)
+            DrinkEntryRow(entry, overview.dateContext.zone, busy, onEdit, onDelete)
         }
     }
 }
@@ -149,6 +150,6 @@ private fun TodayScreenPreview() {
                 context,
                 HydrationSettings(),
                 CalculateWeeklyHydrationUseCase()(entries, context)
-            ), false, onAdd = {}, onDelete = {})
+            ), false, onAdd = {}, onEdit = {}, onDelete = {})
     }
 }

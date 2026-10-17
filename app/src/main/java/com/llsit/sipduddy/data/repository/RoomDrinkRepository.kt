@@ -12,6 +12,12 @@ class RoomDrinkRepository(private val dao: DrinkDao, private val mapper: DrinkEn
     override fun observeEntries(startInclusive: Long, endExclusive: Long): Flow<List<DrinkEntry>> =
         dao.observeEntries(startInclusive, endExclusive).map { rows -> rows.map(mapper::toDomain) }
 
+    override suspend fun getTotalMl(startInclusive: Long, endExclusive: Long) = dao.getTotalMl(startInclusive, endExclusive)
+
     override suspend fun add(entry: DrinkEntry) = dao.insert(mapper.toEntity(entry))
     override suspend fun delete(id: Long) = dao.delete(id)
+    override suspend fun getById(id: Long) = dao.getById(id)?.let(mapper::toDomain)
+    override suspend fun update(entry: DrinkEntry) = dao.update(mapper.toEntity(entry)) == 1
+    override suspend fun deleteAndGet(id: Long) = dao.deleteAndGet(id)?.let(mapper::toDomain)
+    override suspend fun restore(entry: DrinkEntry) = dao.restore(mapper.toEntity(entry)) != -1L
 }

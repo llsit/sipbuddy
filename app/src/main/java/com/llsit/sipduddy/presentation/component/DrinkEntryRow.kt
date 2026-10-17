@@ -30,6 +30,7 @@ internal fun DrinkEntryRow(
     entry: DrinkEntry,
     zone: ZoneId,
     isSaving: Boolean,
+    onEdit: (DrinkEntry) -> Unit,
     onDelete: (DrinkEntry) -> Unit
 ) {
     Surface(color = Color.White.copy(alpha = .8f), shape = RoundedCornerShape(20.dp)) {
@@ -57,11 +58,14 @@ internal fun DrinkEntryRow(
             )
             }
             Text("${entry.amountMl} มล.", fontWeight = FontWeight.Bold)
-            TextButton(
-                onClick = { onDelete(entry) },
-                enabled = !isSaving,
-                contentPadding = PaddingValues(4.dp)
-            ) { Text("ลบ") }
+            Column {
+                TextButton(onClick = { onEdit(entry) }, enabled = !isSaving, contentPadding = PaddingValues(4.dp)) {
+                    Text("แก้ไข")
+                }
+                TextButton(onClick = { onDelete(entry) }, enabled = !isSaving, contentPadding = PaddingValues(4.dp)) {
+                    Text("ลบ")
+                }
+            }
         }
     }
 }

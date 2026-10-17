@@ -22,4 +22,19 @@ class RoomDrinkRepositoryTest {
         repository.delete(1)
         assertTrue(repository.observeEntries(0, 200).first().isEmpty())
     }
+
+    @Test fun editAndUndoMapExactIdsAndTimestampsAndDoNotOverwrite() = runBlocking {
+        val dao = FakeDrinkDao()
+        val repository = RoomDrinkRepository(dao, DrinkEntryMapper())
+        val entry = DrinkEntry(8, DrinkType.JUICE, 200, 1234)
+        assertTrue(repository.restore(entry))
+        val edited = entry.copy(amountMl = 500)
+        assertTrue(repository.update(edited))
+        assertEquals(edited, repository.deleteAndGet(8))
+        assertEquals(null, repository.getById(8))
+        assertTrue(repository.restore(edited))
+        org.junit.Assert.assertFalse(repository.restore(entry))
+        assertEquals(edited, repository.getById(8))
+        org.junit.Assert.assertFalse(repository.update(entry.copy(id = 999)))
+    }
 }

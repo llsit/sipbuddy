@@ -6,14 +6,14 @@ import android.content.Context
 import android.content.Intent
 import com.llsit.sipduddy.domain.model.ReminderSettings
 import com.llsit.sipduddy.domain.reminder.ReminderScheduler
-import com.llsit.sipduddy.domain.usecase.CalculateNextReminderUseCase
+import com.llsit.sipduddy.domain.usecase.CalculateNextScheduledReminderUseCase
 import java.time.Clock
 import java.time.ZoneId
 
 class AndroidReminderScheduler(
     private val context: Context,
     private val clock: Clock,
-    private val calculateNextReminderUseCase: CalculateNextReminderUseCase,
+    private val calculateNextReminderUseCase: CalculateNextScheduledReminderUseCase,
 ) : ReminderScheduler {
     override fun schedule(settings: ReminderSettings) {
         val manager = context.getSystemService(AlarmManager::class.java)
@@ -27,8 +27,8 @@ class AndroidReminderScheduler(
         }
         val next = calculateNextReminderUseCase(
             clock.instant().atZone(ZoneId.systemDefault()),
-            settings.time
-        )
+            settings
+        ) ?: run { manager.cancel(pendingIntent); return }
         // Replaces the same PendingIntent without cancelling the existing alarm before a successful update.
         manager.setAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,

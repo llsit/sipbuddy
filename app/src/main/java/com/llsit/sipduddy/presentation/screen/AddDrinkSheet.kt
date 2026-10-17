@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.llsit.sipduddy.domain.model.DrinkEntry
 import com.llsit.sipduddy.domain.model.DrinkType
 import com.llsit.sipduddy.domain.usecase.AddDrinkUseCase.Companion.MAX_AMOUNT_ML
 import com.llsit.sipduddy.domain.usecase.AddDrinkUseCase.Companion.MIN_AMOUNT_ML
@@ -34,9 +35,9 @@ import com.llsit.sipduddy.presentation.mapper.symbol
 import com.llsit.sipduddy.presentation.mapper.title
 
 @Composable
-internal fun AddDrinkSheet(busy: Boolean, onSave: (DrinkType, Int) -> Unit) {
-    var drinkName by rememberSaveable { mutableStateOf(DrinkType.WATER.name) }
-    var amount by rememberSaveable { mutableStateOf("250") }
+internal fun AddDrinkSheet(busy: Boolean, onSave: (DrinkType, Int) -> Unit, entry: DrinkEntry? = null) {
+    var drinkName by rememberSaveable(entry?.id) { mutableStateOf((entry?.drink ?: DrinkType.WATER).name) }
+    var amount by rememberSaveable(entry?.id) { mutableStateOf((entry?.amountMl ?: 250).toString()) }
     val ml = amount.toIntOrNull()
     Column(
         Modifier
@@ -46,7 +47,7 @@ internal fun AddDrinkSheet(busy: Boolean, onSave: (DrinkType, Int) -> Unit) {
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("วันนี้จิบอะไรดี?", fontSize = 25.sp, fontWeight = FontWeight.Bold)
+        Text(if (entry == null) "วันนี้จิบอะไรดี?" else "แก้ไขรายการ", fontSize = 25.sp, fontWeight = FontWeight.Bold)
         Text("ทุกเครื่องดื่มนับตามปริมาณที่บันทึก", fontSize = 13.sp)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             DrinkType.entries.forEach { drink ->
@@ -82,7 +83,7 @@ internal fun AddDrinkSheet(busy: Boolean, onSave: (DrinkType, Int) -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp)
-        ) { Text(if (busy) "กำลังบันทึก…" else "เติมให้บัดดี้ ♡") }
+        ) { Text(if (busy) "กำลังบันทึก…" else if (entry != null) "บันทึกการแก้ไข" else "เติมให้บัดดี้ ♡") }
         Spacer(Modifier.height(16.dp))
     }
 }

@@ -78,4 +78,27 @@ class ObserveHydrationOverviewUseCaseTest {
         runCurrent()
         assertEquals(date.plusDays(1), values.last().dateContext.date)
     }
+
+    @Test fun settingsChangesReuseGroupedDaysAndUnrelatedRowsDoNotEmit() = runTest {
+        val repo = FakeDrinkRepository()
+        val settings = FakeHydrationSettingsRepository()
+        val useCase = ObserveHydrationOverviewUseCase(repo, settings,
+            FakeDateProvider(DateContext(date, zone)), CalculateWeeklyHydrationUseCase(), StandardTestDispatcher(testScheduler))
+        val values = mutableListOf<HydrationOverview>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase().collect { values += it } }
+        runCurrent()
+        val days = values.last().days
+        settings.settings.value = com.llsit.sipduddy.domain.model.HydrationSettings(3000)
+        runCurrent()
+        org.junit.Assert.assertSame(days, values.last().days)
+        assertEquals(3000, values.last().settings.goalMl)
+        val count = values.size
+        repo.entries.value = listOf(DrinkEntry(1, DrinkType.WATER, 250, 1))
+        runCurrent()
+        assertEquals(count, values.size)
+        repo.entries.value += DrinkEntry(2, DrinkType.WATER, 500, date.atTime(10, 0).atZone(zone).toInstant().toEpochMilli())
+        runCurrent()
+        assertEquals(500L, values.last().totalMl)
+        org.junit.Assert.assertNotSame(days, values.last().days)
+    }
 }

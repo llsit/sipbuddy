@@ -57,9 +57,10 @@ internal fun WaterMascot(fraction: Float, modifier: Modifier = Modifier) {
                     val level = h * (.92f - .86f * fill.value)
                     water.moveTo(0f, h)
                     water.lineTo(0f, level)
+                    val currentPhase = phase.value
                     for (x in 0..100) water.lineTo(
                         w * x / 100,
-                        level + sin(x / 100f * 6.283f + phase.value) * h * .016f
+                        level + sin(x / 100f * 6.283f + currentPhase) * h * .016f
                     )
                     water.lineTo(w, h)
                     water.close()

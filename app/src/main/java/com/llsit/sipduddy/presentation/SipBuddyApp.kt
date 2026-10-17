@@ -13,6 +13,8 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -57,8 +59,14 @@ fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel()) {
     }
     LaunchedEffect(message?.id) {
         message?.let {
-            snackbar.showSnackbar(it.text)
-            viewModel.clearMessage(it.id)
+            val result = snackbar.showSnackbar(
+                it.text,
+                actionLabel = if (it.undoEntry != null) "เลิกทำ" else null,
+                withDismissAction = it.undoEntry != null,
+                duration = if (it.undoEntry != null) SnackbarDuration.Long else SnackbarDuration.Short,
+            )
+            if (result == SnackbarResult.ActionPerformed && it.undoEntry != null) viewModel.undoDelete(it.id)
+            else viewModel.clearMessage(it.id)
         }
     }
     Scaffold(snackbarHost = @Composable { SnackbarHost(hostState = snackbar) }, bottomBar = @Composable {
@@ -92,13 +100,15 @@ fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel()) {
                         overview,
                         state.isSaving,
                         Modifier.weight(1f),
-                        viewModel::showAddDrinkSheet
+                        viewModel::showAddDrinkSheet,
+                        viewModel::showEditDrinkSheet
                     ) { deletingId = it.id }
 
                     AppDestination.HISTORY -> HistoryScreen(
                         overview,
                         state.isSaving,
-                        Modifier.weight(1f)
+                        Modifier.weight(1f),
+                        viewModel::showEditDrinkSheet
                     ) { deletingId = it.id }
 
                     AppDestination.SETTINGS -> SettingsScreen(
@@ -122,7 +132,7 @@ fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel()) {
             sheetState = sheetState,
             containerColor = Cream
         ) {
-            AddDrinkSheet(state.isSaving, viewModel::add)
+            AddDrinkSheet(state.isSaving, viewModel::saveDrink, state.editingEntry)
         }
     }
     deleting?.let { entry ->
