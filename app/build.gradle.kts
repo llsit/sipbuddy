@@ -20,6 +20,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    testBuildType = if (providers.gradleProperty("sipbuddy.benchmark").isPresent) "benchmark" else "debug"
+
     buildTypes {
         release {
             optimization {
@@ -27,6 +29,14 @@ android {
                 packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
             }
         }
+    }
+    buildTypes.create("benchmark") {
+        initWith(buildTypes.getByName("release"))
+        applicationIdSuffix = ".benchmark"
+        signingConfig = signingConfigs.getByName("debug")
+        isDebuggable = false
+        matchingFallbacks += "release"
+        testProguardFiles("benchmark-test.pro")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
