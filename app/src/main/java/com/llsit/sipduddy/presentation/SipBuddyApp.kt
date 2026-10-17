@@ -14,6 +14,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import com.llsit.sipduddy.R
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
@@ -56,6 +65,8 @@ import org.koin.androidx.compose.koinViewModel
 fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var destination by rememberSaveable { mutableStateOf(AppDestination.TODAY) }
+    val focusManager = LocalFocusManager.current
+    val screenStateHolder = rememberSaveableStateHolder()
     var deletingId by rememberSaveable { mutableStateOf<Long?>(null) }
     val snackbar = remember { SnackbarHostState() }
     val overview = state.overview
@@ -77,12 +88,27 @@ fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel()) {
             else viewModel.clearMessage(it.id)
         }
     }
-    Scaffold(snackbarHost = @Composable { SnackbarHost(hostState = snackbar) }, bottomBar = @Composable {
+    Scaffold(
+        topBar = @Composable { AppHeader() },
+        floatingActionButton = @Composable {
+            if (destination == AppDestination.TODAY && overview != null && loadError == null) {
+                ExtendedFloatingActionButton(
+                    onClick = { if (!state.isSaving) viewModel.showAddDrinkSheet() },
+                    modifier = Modifier.semantics {
+                        contentDescription = "บันทึกเครื่องดื่ม"
+                        if (state.isSaving) disabled()
+                    },
+                    icon = { Icon(painterResource(R.drawable.ic_add), contentDescription = null) },
+                    text = { Text("บันทึกเครื่องดื่ม") },
+                )
+            }
+        },
+        snackbarHost = @Composable { SnackbarHost(hostState = snackbar) }, bottomBar = @Composable {
         NavigationBar(containerColor = Cream, tonalElevation = 0.dp) {
             AppDestination.entries.forEach { item ->
                 NavigationBarItem(
-                    selected = destination == item, onClick = { destination = item },
-                    icon = @Composable { Text(item.symbol, fontSize = 22.sp) },
+                    selected = destination == item, onClick = { focusManager.clearFocus(); destination = item },
+                    icon = @Composable { Icon(painterResource(item.iconRes), contentDescription = null) },
                     label = @Composable { Text(item.title) })
             }
         }
@@ -94,8 +120,6 @@ fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel()) {
                 .padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(Modifier.height(4.dp))
-            AppHeader()
             when {
                 state.loading -> CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
                 loadError != null -> {
@@ -107,22 +131,22 @@ fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel()) {
                     targetState = destination,
                     modifier = Modifier.weight(1f),
                     transitionSpec = {
-                        val direction = if (targetState.ordinal > initialState.ordinal) 1 else -1
-                        (fadeIn(tween(SipBuddyMotion.PAGE_MILLIS)) +
-                            slideInHorizontally(tween(SipBuddyMotion.PAGE_MILLIS)) { it / 12 * direction }) togetherWith
-                            (fadeOut(tween(SipBuddyMotion.EXIT_MILLIS)) +
-                                slideOutHorizontally(tween(SipBuddyMotion.PAGE_MILLIS)) { -it / 12 * direction })
+                        (fadeIn(tween(SipBuddyMotion.CONTENT_MILLIS, delayMillis = SipBuddyMotion.EXIT_MILLIS)) togetherWith
+                            fadeOut(tween(SipBuddyMotion.EXIT_MILLIS))).using(null)
                     },
                     label = "destination",
                 ) { shownDestination ->
+                    val transitionRunning = transition.isRunning
+                    screenStateHolder.SaveableStateProvider(shownDestination.name) {
                     when (shownDestination) {
                         AppDestination.TODAY -> TodayScreen(
                             overview,
                             state.isSaving,
                             Modifier.fillMaxSize(),
-                            viewModel::showAddDrinkSheet,
-                            viewModel::showEditDrinkSheet
-                        ) { deletingId = it.id }
+                            onEdit = viewModel::showEditDrinkSheet,
+                            onDelete = { deletingId = it.id },
+                            waveEnabled = destination == AppDestination.TODAY && !state.isAddSheetVisible && deletingId == null && !transitionRunning,
+                        )
 
                         AppDestination.HISTORY -> HistoryScreen(
                             overview,
@@ -137,6 +161,7 @@ fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel()) {
                             Modifier.fillMaxSize(),
                             viewModel::save
                         )
+                    }
                     }
                 }
             }

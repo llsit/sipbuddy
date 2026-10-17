@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,7 +44,7 @@ internal fun DrinkEntryRow(
     onDelete: (DrinkEntry) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(modifier = modifier, color = Color.White.copy(alpha = .8f), shape = RoundedCornerShape(20.dp)) {
+    Surface(modifier = modifier, color = MaterialTheme.colorScheme.surfaceContainerLowest, shape = MaterialTheme.shapes.large) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -58,7 +59,7 @@ internal fun DrinkEntryRow(
             }
             Column(Modifier.weight(1f)) {
                 Crossfade(entry.drink, animationSpec = tween(SipBuddyMotion.CONTENT_MILLIS), label = "drink title") { drink ->
-                    Text(drink.title, fontWeight = FontWeight.SemiBold)
+                    Text(drink.title, style = MaterialTheme.typography.titleMedium)
                 }
                 Text(
                     Instant.ofEpochMilli(entry.timestamp).atZone(zone)

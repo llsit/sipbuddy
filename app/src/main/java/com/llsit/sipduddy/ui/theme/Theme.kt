@@ -16,6 +16,9 @@ fun SipDuddyTheme(content: @Composable () -> Unit) {
         secondary = Color(0xFF7D6848), secondaryContainer = Color(0xFFFFE8BD),
         background = Cream, onBackground = Ink, surface = Cream, onSurface = Ink,
         surfaceVariant = Color(0xFFF1EDE3), onSurfaceVariant = Color(0xFF61717A),
-        outline = Color(0xFF8B9BA2)
+        outline = Color(0xFF73858D), outlineVariant = Color(0xFFCCDADF),
+        surfaceContainerLowest = Color(0xFFFFFFFF), surfaceContainerLow = Color(0xFFEAF3F4),
+        surfaceContainer = Color(0xFFF1EDE3), surfaceContainerHigh = Color(0xFFE8ECE7),
+        surfaceContainerHighest = Color(0xFFE1E7E5)
     ), typography = Typography, content = content)
 }

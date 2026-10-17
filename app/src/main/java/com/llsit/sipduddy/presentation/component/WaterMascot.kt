@@ -8,6 +8,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
@@ -23,15 +26,19 @@ import com.llsit.sipduddy.ui.theme.Ink
 import kotlin.math.sin
 
 @Composable
-internal fun WaterMascot(fraction: Float, modifier: Modifier = Modifier) {
+internal fun WaterMascot(fraction: Float, modifier: Modifier = Modifier, waveEnabled: Boolean = true) {
     val fill = animateFloatAsState(fraction, tween(1000), label = "water level")
-    val transition = rememberInfiniteTransition(label = "wave")
-    val phase = transition.animateFloat(
-        0f,
-        6.283f,
-        infiniteRepeatable(tween(3000, easing = LinearEasing)),
-        label = "phase"
-    )
+    // Dispose the infinite transition while the mascot is covered or its page is offscreen.
+    val phase: State<Float> = if (waveEnabled) {
+        val transition = rememberInfiniteTransition(label = "wave")
+        transition.animateFloat(
+            0f, 6.283f,
+            infiniteRepeatable(tween(3000, easing = LinearEasing)),
+            label = "phase",
+        )
+    } else {
+        remember { mutableFloatStateOf(0f) }
+    }
     Box(modifier
         .semantics {
             contentDescription = "บัดดี้หยดน้ำ เติมแล้ว ${(fraction * 100).toInt()} เปอร์เซ็นต์"

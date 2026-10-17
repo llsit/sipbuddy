@@ -46,13 +46,13 @@ internal fun TodayScreen(
     overview: HydrationOverview,
     busy: Boolean,
     modifier: Modifier = Modifier,
-    onAdd: () -> Unit,
     onEdit: (DrinkEntry) -> Unit,
-    onDelete: (DrinkEntry) -> Unit
+    onDelete: (DrinkEntry) -> Unit,
+    waveEnabled: Boolean = true,
 ) {
     LazyColumn(
         modifier,
-        contentPadding = PaddingValues(bottom = 20.dp),
+        contentPadding = PaddingValues(bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         item(key = "mascot", contentType = "header") {
@@ -66,7 +66,7 @@ internal fun TodayScreen(
                     overview.dateContext.date.format(HydrationFormatters.fullDate),
                     fontSize = 13.sp
                 )
-                WaterMascot(overview.progress, Modifier.size(230.dp))
+                WaterMascot(overview.progress, Modifier.size(230.dp), waveEnabled)
                 Text(
                     if (overview.progress >= 1f) "เย้! วันนี้ถึงเป้าแล้ว ♡" else "เติมความสดชื่นให้บัดดี้กัน",
                     fontWeight = FontWeight.Medium
@@ -102,18 +102,6 @@ internal fun TodayScreen(
                     if (overview.remainingMl == 0L) "สำเร็จแล้ว ดูแลตัวเองดีมากเลย" else "อีก ${overview.remainingMl} มล. ถึงเป้าหมาย",
                     fontSize = 13.sp
                 )
-            }
-        }
-        item(key = "add", contentType = "button") {
-            Button(
-                onClick = onAdd,
-                enabled = !busy,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(20.dp)
-            ) {
-                Text("+ บันทึกเครื่องดื่ม", fontWeight = FontWeight.Bold, fontSize = 17.sp)
             }
         }
         item(key = "entries_title", contentType = "heading") {
@@ -159,6 +147,6 @@ private fun TodayScreenPreview() {
                 context,
                 HydrationSettings(),
                 CalculateWeeklyHydrationUseCase()(entries, context)
-            ), false, onAdd = {}, onEdit = {}, onDelete = {})
+            ), false, onEdit = {}, onDelete = {})
     }
 }

@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -14,7 +16,8 @@ import com.llsit.sipduddy.ui.theme.PaleBlue
 
 @Composable
 internal fun SoftCard(content: @Composable ColumnScope.() -> Unit) {
-    Surface(color = PaleBlue.copy(alpha = .65f), shape = RoundedCornerShape(26.dp)) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        shape = MaterialTheme.shapes.extraLarge) {
         Column(
             Modifier
                 .fillMaxWidth()

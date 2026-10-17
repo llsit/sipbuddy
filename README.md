@@ -42,7 +42,7 @@ Android Lint is provided by AGP and configured in `app/build.gradle.kts` and `ap
 
 ## Motion
 
-Navigation uses a short directional slide/fade (220 ms). Stable-ID diary rows use lazy-list item fade/placement animations for add/delete/Undo. Editing crossfades the beverage icon/title and animates the amount. Beverage and volume chips gently scale when selected, with animated scale read in the graphics layer. Durations are centralized in `presentation/animation/SipBuddyMotion.kt`; all motion uses Compose's animation clock and system duration scale, with no delay in database writes. No domain or ViewModel logic is coupled to animation completion.
+Navigation uses a fade-through transition and preserves saved UI state for each screen. The mascot wave pauses behind dialogs and the add/edit sheet. Stable-ID diary rows use lazy-list item fade/placement animations for add/delete/Undo. Editing crossfades the beverage icon/title and animates the amount. Beverage and volume chips gently scale when selected, with animated scale read in the graphics layer. Durations are centralized in `presentation/animation/SipBuddyMotion.kt`; all motion uses Compose's animation clock and system duration scale, with no delay in database writes. No domain or ViewModel logic is coupled to animation completion.
 
 `DrinkMotionTest` exercises selection during animation, editing followed by deletion, and deleting/reinserting the same ID on an Android device using the Compose v2 test rule.
 
@@ -55,3 +55,7 @@ Install `app/build/outputs/apk/benchmark/app-benchmark.apk`, put Android SDK pla
 The driver warms destinations and uses real Android input/vsync, without Compose's virtual test clock. It records gfxinfo frame deadlines/render-latency percentiles and a recent SurfaceFlinger actual-presentation sample for the continuously moving mascot. FPS is meaningful for that continuous sample; idle pages do not need 60 new frames per second. Navigation and diary scenarios should be assessed using deadline misses and latency. Diary totals include accessibility-query/automation waits, so they are not per-action animation-only metrics. Keep device state, data and animator duration scale consistent, and repeat runs; one device/run does not establish a universal speedup.
 
 Sources: [Android dumpsys](https://developer.android.com/tools/dumpsys), [Android rendering metrics](https://developer.android.com/topic/performance/vitals/render), [AOSP frame presentation timestamps](https://android.googlesource.com/platform/frameworks/native/+/dc057e52f5/services/surfaceflinger/FrameTracker.cpp).
+
+## Material 3 UI
+
+The cream and blue palette and original Canvas mascot remain. Screens use a centered Material 3 top app bar, icon navigation, themed cards and an extended floating action button for recording drinks. Bottom list padding keeps records accessible above the action button.
