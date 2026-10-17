@@ -1,5 +1,13 @@
 package com.llsit.sipduddy.presentation
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import com.llsit.sipduddy.presentation.animation.SipBuddyMotion
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -95,28 +103,41 @@ fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel()) {
                     TextButton(onClick = viewModel::retry) { Text("ลองใหม่") }
                 }
 
-                overview != null -> when (destination) {
-                    AppDestination.TODAY -> TodayScreen(
-                        overview,
-                        state.isSaving,
-                        Modifier.weight(1f),
-                        viewModel::showAddDrinkSheet,
-                        viewModel::showEditDrinkSheet
-                    ) { deletingId = it.id }
+                overview != null -> AnimatedContent(
+                    targetState = destination,
+                    modifier = Modifier.weight(1f),
+                    transitionSpec = {
+                        val direction = if (targetState.ordinal > initialState.ordinal) 1 else -1
+                        (fadeIn(tween(SipBuddyMotion.PAGE_MILLIS)) +
+                            slideInHorizontally(tween(SipBuddyMotion.PAGE_MILLIS)) { it / 12 * direction }) togetherWith
+                            (fadeOut(tween(SipBuddyMotion.EXIT_MILLIS)) +
+                                slideOutHorizontally(tween(SipBuddyMotion.PAGE_MILLIS)) { -it / 12 * direction })
+                    },
+                    label = "destination",
+                ) { shownDestination ->
+                    when (shownDestination) {
+                        AppDestination.TODAY -> TodayScreen(
+                            overview,
+                            state.isSaving,
+                            Modifier.fillMaxSize(),
+                            viewModel::showAddDrinkSheet,
+                            viewModel::showEditDrinkSheet
+                        ) { deletingId = it.id }
 
-                    AppDestination.HISTORY -> HistoryScreen(
-                        overview,
-                        state.isSaving,
-                        Modifier.weight(1f),
-                        viewModel::showEditDrinkSheet
-                    ) { deletingId = it.id }
+                        AppDestination.HISTORY -> HistoryScreen(
+                            overview,
+                            state.isSaving,
+                            Modifier.fillMaxSize(),
+                            viewModel::showEditDrinkSheet
+                        ) { deletingId = it.id }
 
-                    AppDestination.SETTINGS -> SettingsScreen(
-                        overview.settings,
-                        state.isSaving,
-                        Modifier.weight(1f),
-                        viewModel::save
-                    )
+                        AppDestination.SETTINGS -> SettingsScreen(
+                            overview.settings,
+                            state.isSaving,
+                            Modifier.fillMaxSize(),
+                            viewModel::save
+                        )
+                    }
                 }
             }
         }

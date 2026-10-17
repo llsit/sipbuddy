@@ -14,7 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
+import com.llsit.sipduddy.presentation.component.AnimatedSelectionChip
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,20 +51,20 @@ internal fun AddDrinkSheet(busy: Boolean, onSave: (DrinkType, Int) -> Unit, entr
         Text("ทุกเครื่องดื่มนับตามปริมาณที่บันทึก", fontSize = 13.sp)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             DrinkType.entries.forEach { drink ->
-                FilterChip(
+                AnimatedSelectionChip(
                     enabled = !busy,
                     selected = drinkName == drink.name,
                     onClick = { drinkName = drink.name },
-                    label = { Text("${drink.symbol} ${drink.title}") })
+                    label = "${drink.symbol} ${drink.title}")
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(150, 250, 500).forEach { preset ->
-                FilterChip(
+                AnimatedSelectionChip(
                     enabled = !busy,
                     selected = amount == preset.toString(),
                     onClick = { amount = preset.toString() },
-                    label = { Text("$preset มล.") })
+                    label = "$preset มล.")
             }
         }
         OutlinedTextField(

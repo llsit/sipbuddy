@@ -1,5 +1,7 @@
 package com.llsit.sipduddy.presentation.screen
 
+import androidx.compose.animation.core.tween
+import com.llsit.sipduddy.presentation.animation.SipBuddyMotion
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -126,7 +128,14 @@ internal fun TodayScreen(
             contentType = "empty"
         ) { EmptyState("เริ่มต้นด้วยน้ำสักแก้ว", "แตะบันทึกเครื่องดื่ม เพื่อเติมหยดแรกของวัน") }
         items(overview.today.entries, key = { it.id }, contentType = { "drink_entry" }) { entry ->
-            DrinkEntryRow(entry, overview.dateContext.zone, busy, onEdit, onDelete)
+            DrinkEntryRow(
+                entry, overview.dateContext.zone, busy, onEdit, onDelete,
+                modifier = Modifier.animateItem(
+                    fadeInSpec = tween(SipBuddyMotion.CONTENT_MILLIS),
+                    placementSpec = tween(SipBuddyMotion.PLACEMENT_MILLIS),
+                    fadeOutSpec = tween(SipBuddyMotion.EXIT_MILLIS),
+                ),
+            )
         }
     }
 }

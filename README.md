@@ -39,3 +39,9 @@ Settings use DataStore. Reminders support 1–12 distinct local times (default 1
 Device checks: add each beverage, relaunch for persistence, delete a record, change goal, midnight rollover, grant/deny notifications, set reminder a few minutes ahead, reboot and verify rescheduling, large fonts and small screens.
 
 Android Lint is provided by AGP and configured in `app/build.gradle.kts` and `app/lint.xml`. Errors fail the build, dependency checks and release checks are enabled, and HTML/XML reports are generated under `app/build/reports/`. No baseline or disabled checks hides findings. Run `:app:lintDebug` during development or `:app:lintDebug :app:lintRelease` to explicitly check both variants.
+
+## Motion
+
+Navigation uses a short directional slide/fade (220 ms). Stable-ID diary rows use lazy-list item fade/placement animations for add/delete/Undo. Editing crossfades the beverage icon/title and animates the amount. Beverage and volume chips gently scale when selected, with animated scale read in the graphics layer. Durations are centralized in `presentation/animation/SipBuddyMotion.kt`; all motion uses Compose's animation clock and system duration scale, with no delay in database writes. No domain or ViewModel logic is coupled to animation completion.
+
+`DrinkMotionTest` exercises selection during animation, editing followed by deletion, and deleting/reinserting the same ID on an Android device using the Compose v2 test rule.

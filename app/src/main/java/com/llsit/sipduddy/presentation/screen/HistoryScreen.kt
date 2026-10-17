@@ -1,5 +1,7 @@
 package com.llsit.sipduddy.presentation.screen
 
+import androidx.compose.animation.core.tween
+import com.llsit.sipduddy.presentation.animation.SipBuddyMotion
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
@@ -56,7 +58,14 @@ internal fun HistoryScreen(
                 Text("ยังไม่มีรายการ", fontSize = 13.sp, color = Ink.copy(alpha = .5f))
             }
             items(day.entries, key = { it.id }, contentType = { "drink_entry" }) { entry ->
-                DrinkEntryRow(entry, overview.dateContext.zone, busy, onEdit, onDelete)
+                DrinkEntryRow(
+                    entry, overview.dateContext.zone, busy, onEdit, onDelete,
+                    modifier = Modifier.animateItem(
+                        fadeInSpec = tween(SipBuddyMotion.CONTENT_MILLIS),
+                        placementSpec = tween(SipBuddyMotion.PLACEMENT_MILLIS),
+                        fadeOutSpec = tween(SipBuddyMotion.EXIT_MILLIS),
+                    ),
+                )
             }
         }
     }
