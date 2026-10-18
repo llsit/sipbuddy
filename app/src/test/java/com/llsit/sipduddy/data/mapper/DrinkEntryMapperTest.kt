@@ -8,9 +8,10 @@ import org.junit.Test
 
 class DrinkEntryMapperTest {
     private val mapper = DrinkEntryMapper()
+
     @Test
     fun preservesExistingStoredNamesAndRoundTripsAllFields() {
-        val entry = DrinkEntry(7, DrinkType.COFFEE, 150, 123L, ownerId="")
+        val entry = DrinkEntry(7, DrinkType.COFFEE, 150, 123L, ownerId = "")
         assertEquals(entry, mapper.toDomain(mapper.toEntity(entry)))
         assertEquals("COFFEE", mapper.toEntity(entry).drink)
     }

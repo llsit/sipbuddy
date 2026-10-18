@@ -2,24 +2,33 @@ package com.llsit.sipduddy.data.auth
 
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.jan.supabase.auth.user.UserSession
+import java.security.KeyStore
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test
-import java.security.KeyStore
 
 class EncryptedSessionManagerTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private val storageName = "auth_session_test"
     private val preferences = context.getSharedPreferences(storageName, 0)
     private val manager = EncryptedSessionManager(context, storageName)
+
     @After fun cleanup() {
         preferences.edit().clear().commit()
-        KeyStore.getInstance("AndroidKeyStore").apply { load(null); deleteEntry("${context.packageName}.$storageName") }
+        KeyStore.getInstance("AndroidKeyStore").apply {
+            load(null)
+            deleteEntry("${context.packageName}.$storageName")
+        }
     }
+
     @Test fun roundTripUsesEncryptionAndFreshIvAndDeletion() = runBlocking {
-        val session = UserSession(accessToken = "synthetic-access-token", refreshToken = "synthetic-refresh-token",
-            expiresIn = 3600, tokenType = "bearer")
+        val session = UserSession(
+            accessToken = "synthetic-access-token",
+            refreshToken = "synthetic-refresh-token",
+            expiresIn = 3600,
+            tokenType = "bearer",
+        )
         manager.saveSession(session)
         assertEquals(session, manager.loadSession())
         val encrypted = preferences.getString("session", "")!!

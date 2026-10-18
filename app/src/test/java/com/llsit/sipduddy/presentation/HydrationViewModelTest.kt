@@ -2,21 +2,26 @@ package com.llsit.sipduddy.presentation
 
 import androidx.lifecycle.ViewModelStore
 import com.llsit.sipduddy.domain.model.DateContext
+import com.llsit.sipduddy.domain.model.DrinkEntry
 import com.llsit.sipduddy.domain.model.DrinkType
 import com.llsit.sipduddy.domain.model.HydrationSettings
-import com.llsit.sipduddy.domain.model.DrinkEntry
-import com.llsit.sipduddy.domain.usecase.EditDrinkUseCase
-import com.llsit.sipduddy.domain.usecase.RestoreDrinkUseCase
 import com.llsit.sipduddy.domain.usecase.AddDrinkUseCase
 import com.llsit.sipduddy.domain.usecase.CalculateWeeklyHydrationUseCase
 import com.llsit.sipduddy.domain.usecase.DeleteDrinkUseCase
+import com.llsit.sipduddy.domain.usecase.EditDrinkUseCase
 import com.llsit.sipduddy.domain.usecase.ObserveHydrationOverviewUseCase
+import com.llsit.sipduddy.domain.usecase.RestoreDrinkUseCase
 import com.llsit.sipduddy.domain.usecase.SaveHydrationSettingsUseCase
 import com.llsit.sipduddy.fake.FakeDateProvider
 import com.llsit.sipduddy.fake.FakeDrinkRepository
 import com.llsit.sipduddy.fake.FakeHydrationSettingsRepository
 import com.llsit.sipduddy.fake.FakeReminderScheduler
 import com.llsit.sipduddy.rule.MainDispatcherRule
+import java.io.IOException
+import java.time.Clock
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZoneOffset
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -35,11 +40,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import java.io.IOException
-import java.time.Clock
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.ZoneOffset
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HydrationViewModelTest {
@@ -49,6 +49,7 @@ class HydrationViewModelTest {
     private val date = LocalDate.of(2026, 10, 17)
     private val zone = ZoneId.of("Asia/Bangkok")
     private val clock = Clock.fixed(date.atTime(10, 0).atZone(zone).toInstant(), ZoneOffset.UTC)
+
     @After
     fun clearViewModels() {
         store.clear()
@@ -67,7 +68,7 @@ class HydrationViewModelTest {
             settings,
             FakeDateProvider(DateContext(date, zone)),
             CalculateWeeklyHydrationUseCase(),
-            StandardTestDispatcher(testScheduler)
+            StandardTestDispatcher(testScheduler),
         )
         val viewModel = HydrationViewModel(
             observe,
@@ -76,7 +77,7 @@ class HydrationViewModelTest {
             SaveHydrationSettingsUseCase(settings, scheduler),
             EditDrinkUseCase(drinks),
             RestoreDrinkUseCase(drinks),
-            accounts
+            accounts,
         )
         store.put("subject", viewModel)
         if (collectState) backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.state.collect { } }
@@ -189,53 +190,69 @@ class HydrationViewModelTest {
         val entry = DrinkEntry(8, DrinkType.TEA, 300, clock.millis())
         val repo = FakeDrinkRepository().apply { entries.value = listOf(entry) }
         val vm = createViewModel(repo)
-        vm.delete(8); runCurrent()
+        vm.delete(8)
+        runCurrent()
         val id = vm.state.value.message!!.id
         assertTrue(repo.entries.value.isEmpty())
-        vm.undoDelete(id - 1); runCurrent()
+        vm.undoDelete(id - 1)
+        runCurrent()
         assertTrue(repo.entries.value.isEmpty())
-        vm.undoDelete(id); vm.undoDelete(id); runCurrent()
+        vm.undoDelete(id)
+        vm.undoDelete(id)
+        runCurrent()
         assertEquals(listOf(entry), repo.entries.value)
         assertEquals(300L, vm.state.value.overview!!.totalMl)
     }
+
     @Test fun undoFailureOffersRetryAndRetainsSnapshot() = runTest {
         val entry = DrinkEntry(8, DrinkType.WATER, 250, clock.millis())
         val repo = FakeDrinkRepository().apply { entries.value = listOf(entry) }
         val vm = createViewModel(repo)
-        vm.delete(8); runCurrent()
+        vm.delete(8)
+        runCurrent()
         repo.writeFailure = IOException()
-        vm.undoDelete(vm.state.value.message!!.id); runCurrent()
+        vm.undoDelete(vm.state.value.message!!.id)
+        runCurrent()
         assertEquals(entry, vm.state.value.message!!.undoEntry)
         repo.writeFailure = null
-        vm.undoDelete(vm.state.value.message!!.id); runCurrent()
+        vm.undoDelete(vm.state.value.message!!.id)
+        runCurrent()
         assertEquals(listOf(entry), repo.entries.value)
     }
+
     @Test fun editUsesExistingRecordAndFailureKeepsEditorOpen() = runTest {
         val entry = DrinkEntry(8, DrinkType.WATER, 250, clock.millis() - 86400000)
         val repo = FakeDrinkRepository().apply { entries.value = listOf(entry) }
         val vm = createViewModel(repo)
         vm.showEditDrinkSheet(entry)
         repo.writeFailure = IOException()
-        vm.saveDrink(DrinkType.MILK, 400); runCurrent()
+        vm.saveDrink(DrinkType.MILK, 400)
+        runCurrent()
         assertTrue(vm.state.value.isAddSheetVisible)
         repo.writeFailure = null
-        vm.saveDrink(DrinkType.MILK, 400); runCurrent()
+        vm.saveDrink(DrinkType.MILK, 400)
+        runCurrent()
         assertFalse(vm.state.value.isAddSheetVisible)
         assertEquals(listOf(entry.copy(drink = DrinkType.MILK, amountMl = 400)), repo.entries.value)
         assertEquals(0L, vm.state.value.overview!!.totalMl)
     }
+
     @Test fun pressedUndoWaitsForInFlightWrite() = runTest {
         val entry = DrinkEntry(8, DrinkType.WATER, 250, clock.millis())
         val repo = FakeDrinkRepository().apply { entries.value = listOf(entry) }
         val vm = createViewModel(repo)
-        vm.delete(8); runCurrent()
+        vm.delete(8)
+        runCurrent()
         val id = vm.state.value.message!!.id
         val gate = CompletableDeferred<Unit>()
         repo.addGate = gate
-        vm.add(DrinkType.TEA, 150); runCurrent()
-        vm.undoDelete(id); runCurrent()
+        vm.add(DrinkType.TEA, 150)
+        runCurrent()
+        vm.undoDelete(id)
+        runCurrent()
         assertTrue(repo.entries.value.isEmpty())
-        gate.complete(Unit); runCurrent()
+        gate.complete(Unit)
+        runCurrent()
         assertTrue(entry in repo.entries.value)
         assertEquals(2, repo.entries.value.size)
     }
@@ -259,23 +276,24 @@ class HydrationViewModelTest {
         runCurrent()
         assertFalse(vm.state.value.loading)
     }
+
     @Test fun oldAccountViewModelRejectsForeignEmissionsAndQueuedWrites() = runTest {
-        val accounts=com.llsit.sipduddy.fake.FakeAccountRepository("A")
-        val own=DrinkEntry(1,DrinkType.WATER,250,clock.millis(),ownerId="A")
-        val repo=FakeDrinkRepository().apply { entries.value=listOf(own) }
-        val vm=createViewModel(repo,accounts=accounts)
-        assertEquals(250L,vm.state.value.overview?.totalMl)
-        accounts.owner.value="B"
-        val foreign=own.copy(id=2,amountMl=999,ownerId="B")
-        repo.entries.value=listOf(foreign)
-        vm.add(DrinkType.TEA,150)
+        val accounts = com.llsit.sipduddy.fake.FakeAccountRepository("A")
+        val own = DrinkEntry(1, DrinkType.WATER, 250, clock.millis(), ownerId = "A")
+        val repo = FakeDrinkRepository().apply { entries.value = listOf(own) }
+        val vm = createViewModel(repo, accounts = accounts)
+        assertEquals(250L, vm.state.value.overview?.totalMl)
+        accounts.owner.value = "B"
+        val foreign = own.copy(id = 2, amountMl = 999, ownerId = "B")
+        repo.entries.value = listOf(foreign)
+        vm.add(DrinkType.TEA, 150)
         runCurrent()
-        assertEquals(listOf(foreign),repo.entries.value)
-        assertEquals(250L,vm.state.value.overview?.totalMl)
+        assertEquals(listOf(foreign), repo.entries.value)
+        assertEquals(250L, vm.state.value.overview?.totalMl)
         // Even a late B emission after switching back cannot enter A's retained state.
-        accounts.owner.value="A"
-        repo.entries.value=listOf(foreign.copy(amountMl=1000))
+        accounts.owner.value = "A"
+        repo.entries.value = listOf(foreign.copy(amountMl = 1000))
         runCurrent()
-        assertEquals(250L,vm.state.value.overview?.totalMl)
+        assertEquals(250L, vm.state.value.overview?.totalMl)
     }
 }

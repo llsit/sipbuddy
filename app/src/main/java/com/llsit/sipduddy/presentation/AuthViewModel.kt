@@ -34,9 +34,11 @@ class AuthViewModel(
             }
         }
         viewModelScope.launch {
-            observeSession().collect { session -> mutableState.update {
-                it.copy(session = session, showForm = if (session is AuthSession.SignedIn && it.mode != AuthMode.UPDATE_PASSWORD) false else it.showForm)
-            } }
+            observeSession().collect { session ->
+                mutableState.update {
+                    it.copy(session = session, showForm = if (session is AuthSession.SignedIn && it.mode != AuthMode.UPDATE_PASSWORD) false else it.showForm)
+                }
+            }
         }
         viewModelScope.launch {
             observeSession.recoveryRequired().collect { required ->
@@ -44,23 +46,31 @@ class AuthViewModel(
             }
         }
     }
-    fun open() { mutableState.update { it.copy(showForm = true, error = null, message = null) } }
-    fun close() { if (!state.value.isBusy) mutableState.update { it.copy(showForm = false) } }
+    fun open() {
+        mutableState.update { it.copy(showForm = true, error = null, message = null) }
+    }
+    fun close() {
+        if (!state.value.isBusy) mutableState.update { it.copy(showForm = false) }
+    }
     fun mode(mode: AuthMode) {
-        if (!state.value.isBusy && state.value.mode != AuthMode.UPDATE_PASSWORD && mode != AuthMode.UPDATE_PASSWORD)
+        if (!state.value.isBusy && state.value.mode != AuthMode.UPDATE_PASSWORD && mode != AuthMode.UPDATE_PASSWORD) {
             mutableState.update { it.copy(mode = mode, error = null, message = null) }
+        }
     }
     fun submit(email: String, password: String) = perform {
         when (state.value.mode) {
             AuthMode.SIGN_IN -> signInUseCase(email, password)
+
             AuthMode.SIGN_UP -> {
                 val active = signUpUseCase(email, password)
                 mutableState.update { it.copy(message = if (active) "สมัครสมาชิกแล้ว" else "หากอีเมลนี้สมัครได้ ระบบจะส่งอีเมลยืนยัน กรุณาตรวจกล่องจดหมายและสแปม") }
             }
+
             AuthMode.RESET -> {
                 sendPasswordResetUseCase(email)
                 mutableState.update { it.copy(message = "หากอีเมลนี้มีบัญชีอยู่ ระบบจะส่งลิงก์รีเซ็ตรหัสผ่าน กรุณาเปิดบนเครื่องนี้") }
             }
+
             AuthMode.UPDATE_PASSWORD -> {
                 updatePasswordUseCase(password)
                 mutableState.update { it.copy(showForm = false, mode = AuthMode.SIGN_IN, message = "เปลี่ยนรหัสผ่านแล้ว") }
@@ -76,10 +86,15 @@ class AuthViewModel(
         if (state.value.isBusy || !state.value.isConfigured || state.value.session == AuthSession.Loading) return
         mutableState.update { it.copy(isBusy = true, error = null, message = null) }
         viewModelScope.launch {
-            try { action() }
-            catch (cancelled: CancellationException) { throw cancelled }
-            catch (error: Exception) { mutableState.update { it.copy(error = errorFormatter.format(error)) } }
-            finally { mutableState.update { it.copy(isBusy = false) } }
+            try {
+                action()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                mutableState.update { it.copy(error = errorFormatter.format(error)) }
+            } finally {
+                mutableState.update { it.copy(isBusy = false) }
+            }
         }
     }
 }

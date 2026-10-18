@@ -2,16 +2,16 @@ package com.llsit.sipduddy.di
 
 import com.llsit.sipduddy.domain.usecase.AddDrinkUseCase
 import com.llsit.sipduddy.domain.usecase.CalculateNextReminderUseCase
+import com.llsit.sipduddy.domain.usecase.CalculateNextScheduledReminderUseCase
 import com.llsit.sipduddy.domain.usecase.CalculateWeeklyHydrationUseCase
 import com.llsit.sipduddy.domain.usecase.DeleteDrinkUseCase
+import com.llsit.sipduddy.domain.usecase.EditDrinkUseCase
 import com.llsit.sipduddy.domain.usecase.HandleReminderUseCase
 import com.llsit.sipduddy.domain.usecase.ObserveHydrationOverviewUseCase
+import com.llsit.sipduddy.domain.usecase.RestoreDrinkUseCase
 import com.llsit.sipduddy.domain.usecase.RestoreReminderUseCase
 import com.llsit.sipduddy.domain.usecase.SaveHydrationSettingsUseCase
-import com.llsit.sipduddy.domain.usecase.EditDrinkUseCase
-import com.llsit.sipduddy.domain.usecase.RestoreDrinkUseCase
 import com.llsit.sipduddy.domain.usecase.ShouldSendReminderUseCase
-import com.llsit.sipduddy.domain.usecase.CalculateNextScheduledReminderUseCase
 import kotlinx.coroutines.Dispatchers
 import org.koin.dsl.module
 

@@ -1,8 +1,8 @@
 package com.llsit.sipduddy.di
 
 import androidx.room.Room
-import com.llsit.sipduddy.data.local.database.HydrationDatabaseMigration
 import com.llsit.sipduddy.data.local.database.HydrationDatabase
+import com.llsit.sipduddy.data.local.database.HydrationDatabaseMigration
 import com.llsit.sipduddy.data.local.preferences.hydrationDataStore
 import com.llsit.sipduddy.data.mapper.DrinkEntryMapper
 import com.llsit.sipduddy.data.mapper.HydrationSettingsMapper
@@ -16,9 +16,9 @@ import com.llsit.sipduddy.domain.reminder.ReminderScheduler
 import com.llsit.sipduddy.domain.repository.DrinkRepository
 import com.llsit.sipduddy.domain.repository.HydrationSettingsRepository
 import com.llsit.sipduddy.domain.time.DateProvider
+import java.time.Clock
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
-import java.time.Clock
 
 val dataModule = module {
     single<Clock> { Clock.systemUTC() }

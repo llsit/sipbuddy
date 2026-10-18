@@ -15,9 +15,15 @@ internal fun AccountCard(state: AuthUiState, onOpen: () -> Unit, onSignOut: () -
         Text("ประวัติแยกตามบัญชี บันทึกออฟไลน์ได้ และซิงก์เมื่อเชื่อมต่ออินเทอร์เน็ต", style = MaterialTheme.typography.bodySmall)
         if ((state.session as? AuthSession.SignedIn)?.isOffline == true) Text("ออฟไลน์: กำลังใช้ประวัติที่เก็บในเครื่อง")
         if (!state.isConfigured) Text("ระบบบัญชียังไม่พร้อมใช้งาน คุณยังบันทึกน้ำได้ตามปกติ", style = MaterialTheme.typography.bodySmall)
-        if (user == null) Button(onClick = onOpen, enabled = state.isConfigured && !state.isBusy && state.session != AuthSession.Loading,
-            modifier = Modifier.fillMaxWidth()) { Text("เข้าสู่ระบบ / สมัครสมาชิก") }
-        else OutlinedButton(onClick = onSignOut, enabled = !state.isBusy) { Text(if (state.isBusy) "กำลังออกจากระบบ…" else "ออกจากระบบ") }
+        if (user == null) {
+            Button(
+                onClick = onOpen,
+                enabled = state.isConfigured && !state.isBusy && state.session != AuthSession.Loading,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("เข้าสู่ระบบ / สมัครสมาชิก") }
+        } else {
+            OutlinedButton(onClick = onSignOut, enabled = !state.isBusy) { Text(if (state.isBusy) "กำลังออกจากระบบ…" else "ออกจากระบบ") }
+        }
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         state.message?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
     }

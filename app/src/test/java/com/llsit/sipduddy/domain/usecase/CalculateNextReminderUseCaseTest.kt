@@ -1,14 +1,15 @@
 package com.llsit.sipduddy.domain.usecase
 
 import com.llsit.sipduddy.domain.model.ReminderTime
-import org.junit.Assert.assertEquals
-import org.junit.Test
 import java.time.Duration
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 class CalculateNextReminderUseCaseTest {
     private val useCase = CalculateNextReminderUseCase()
+
     @Test
     fun choosesTodayBeforeTimeAndTomorrowAtOrAfterTime() {
         val now = ZonedDateTime.of(2026, 10, 17, 10, 0, 0, 0, ZoneId.of("Asia/Bangkok"))

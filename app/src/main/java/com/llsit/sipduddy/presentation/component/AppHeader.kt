@@ -16,8 +16,11 @@ internal fun AppHeader() {
         title = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("SipBuddy", style = MaterialTheme.typography.titleLarge)
-                Text("เพื่อนตัวจิ๋ว ชวนจิบน้ำ", style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "เพื่อนตัวจิ๋ว ชวนจิบน้ำ",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),

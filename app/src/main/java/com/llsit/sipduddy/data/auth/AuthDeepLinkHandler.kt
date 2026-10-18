@@ -12,9 +12,11 @@ class AuthDeepLinkHandler(private val provider: SupabaseClientProvider) {
             provider.callbackError.value = "ลิงก์เข้าสู่ระบบหมดอายุหรือถูกยกเลิก กรุณาลองใหม่"
             return
         }
-        provider.client?.handleDeeplinks(intent,
+        provider.client?.handleDeeplinks(
+            intent,
             onSessionSuccess = { provider.recoveryRequired.value = recovery },
-            onError = { provider.callbackError.value = "เปิดลิงก์ไม่สำเร็จ กรุณาขอลิงก์ใหม่และเปิดบนเครื่องเดิม" })
+            onError = { provider.callbackError.value = "เปิดลิงก์ไม่สำเร็จ กรุณาขอลิงก์ใหม่และเปิดบนเครื่องเดิม" },
+        )
         // Consume once so rotation does not exchange the same PKCE code again.
         intent.data = null
     }

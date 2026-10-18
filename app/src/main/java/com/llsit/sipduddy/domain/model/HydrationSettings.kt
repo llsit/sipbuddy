@@ -5,7 +5,9 @@ data class HydrationSettings(
     val reminder: ReminderSettings = ReminderSettings(),
     val ownerId: String? = null,
 ) {
-    init { require(goalMl in MIN_GOAL_ML..MAX_GOAL_ML) { "ตั้งเป้าหมาย 250–10,000 มล." } }
+    init {
+        require(goalMl in MIN_GOAL_ML..MAX_GOAL_ML) { "ตั้งเป้าหมาย 250–10,000 มล." }
+    }
 
     companion object {
         const val DEFAULT_GOAL_ML = 2000

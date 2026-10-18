@@ -10,7 +10,9 @@ class FakeAuthRepository : AuthRepository {
     override val session = MutableStateFlow<AuthSession>(AuthSession.SignedOut)
     override val recoveryRequired = MutableStateFlow(false)
     override val callbackError = MutableStateFlow<String?>(null)
-    override fun clearCallbackError() { callbackError.value = null }
+    override fun clearCallbackError() {
+        callbackError.value = null
+    }
     var calls = 0
     var googleCalls = 0
     var passwordUpdates = 0
@@ -20,7 +22,9 @@ class FakeAuthRepository : AuthRepository {
     var gate: CompletableDeferred<Unit>? = null
     var signupHasSession = false
     private suspend fun request(email: String? = null, password: String? = null) {
-        calls++; lastEmail = email; lastPassword = password
+        calls++
+        lastEmail = email
+        lastPassword = password
         gate?.await()
         failure?.let { throw it }
     }
@@ -33,10 +37,20 @@ class FakeAuthRepository : AuthRepository {
         if (signupHasSession) session.value = AuthSession.SignedIn(AuthUser("user-1", email))
         return signupHasSession
     }
-    override suspend fun signInWithGoogle() { googleCalls++; request() }
-    override suspend fun signOut() { request(); session.value = AuthSession.SignedOut }
-    override suspend fun sendPasswordReset(email: String) { request(email) }
+    override suspend fun signInWithGoogle() {
+        googleCalls++
+        request()
+    }
+    override suspend fun signOut() {
+        request()
+        session.value = AuthSession.SignedOut
+    }
+    override suspend fun sendPasswordReset(email: String) {
+        request(email)
+    }
     override suspend fun updatePassword(password: String) {
-        request(password = password); passwordUpdates++; recoveryRequired.value = false
+        request(password = password)
+        passwordUpdates++
+        recoveryRequired.value = false
     }
 }

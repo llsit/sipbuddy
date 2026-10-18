@@ -2,9 +2,9 @@ package com.llsit.sipduddy.domain.usecase
 
 import com.llsit.sipduddy.domain.repository.DrinkRepository
 import com.llsit.sipduddy.domain.repository.HydrationSettingsRepository
-import kotlinx.coroutines.flow.first
 import java.time.Clock
 import java.time.ZoneId
+import kotlinx.coroutines.flow.first
 
 class ShouldSendReminderUseCase(
     private val drinks: DrinkRepository,

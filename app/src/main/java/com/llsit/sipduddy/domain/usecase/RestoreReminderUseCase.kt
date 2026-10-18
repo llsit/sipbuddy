@@ -10,9 +10,11 @@ class RestoreReminderUseCase(
     private val scheduler: ReminderScheduler,
     private val accounts: com.llsit.sipduddy.domain.repository.AccountRepository? = null,
 ) {
-    suspend operator fun invoke(): ReminderSettings =
-        repository.settings.first().let { settings ->
-            if (accounts != null && settings.ownerId != accounts.owner.value) settings.reminder.copy(enabled = false)
-            else settings.reminder.also(scheduler::schedule)
+    suspend operator fun invoke(): ReminderSettings = repository.settings.first().let { settings ->
+        if (accounts != null && settings.ownerId != accounts.owner.value) {
+            settings.reminder.copy(enabled = false)
+        } else {
+            settings.reminder.also(scheduler::schedule)
         }
+    }
 }

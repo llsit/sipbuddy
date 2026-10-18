@@ -20,7 +20,7 @@ internal fun EmptyState(title: String, subtitle: String) {
             .fillMaxWidth()
             .padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(title, fontWeight = FontWeight.Normal)
         Text(subtitle, fontSize = 12.sp, color = Ink.copy(alpha = .65f))

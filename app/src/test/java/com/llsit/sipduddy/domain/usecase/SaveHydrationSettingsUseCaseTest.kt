@@ -6,6 +6,7 @@ import com.llsit.sipduddy.domain.model.ReminderTime
 import com.llsit.sipduddy.domain.model.SaveHydrationSettingsResult
 import com.llsit.sipduddy.fake.FakeHydrationSettingsRepository
 import com.llsit.sipduddy.fake.FakeReminderScheduler
+import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -14,7 +15,6 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
-import java.io.IOException
 
 class SaveHydrationSettingsUseCaseTest {
     @Test
@@ -37,8 +37,9 @@ class SaveHydrationSettingsUseCaseTest {
         try {
             SaveHydrationSettingsUseCase(
                 repository,
-                scheduler
-            )(HydrationSettings(3000)); fail("failure swallowed")
+                scheduler,
+            )(HydrationSettings(3000))
+            fail("failure swallowed")
         } catch (_: IOException) {
         }
         assertTrue(scheduler.scheduled.isEmpty())
@@ -51,7 +52,7 @@ class SaveHydrationSettingsUseCaseTest {
         val settings = HydrationSettings(3000)
         assertEquals(
             SaveHydrationSettingsResult.SAVED_WITH_REMINDER_ERROR,
-            SaveHydrationSettingsUseCase(repository, scheduler)(settings)
+            SaveHydrationSettingsUseCase(repository, scheduler)(settings),
         )
         assertEquals(settings, repository.settings.value)
     }
@@ -61,8 +62,9 @@ class SaveHydrationSettingsUseCaseTest {
         val scheduler = FakeReminderScheduler().apply { failure = CancellationException() }
         try {
             SaveHydrationSettingsUseCase(FakeHydrationSettingsRepository(), scheduler)(
-                HydrationSettings()
-            ); fail("cancellation swallowed")
+                HydrationSettings(),
+            )
+            fail("cancellation swallowed")
         } catch (_: CancellationException) {
         }
     }
@@ -72,8 +74,10 @@ class SaveHydrationSettingsUseCaseTest {
         for (goal in listOf(
             0,
             249,
-            10001
-        )) assertThrows(IllegalArgumentException::class.java) { HydrationSettings(goal) }
+            10001,
+        )) {
+            assertThrows(IllegalArgumentException::class.java) { HydrationSettings(goal) }
+        }
         assertThrows(IllegalArgumentException::class.java) { ReminderTime(24, 0) }
         assertThrows(IllegalArgumentException::class.java) { ReminderTime(10, 60) }
     }
@@ -82,7 +86,9 @@ class SaveHydrationSettingsUseCaseTest {
         val accounts = com.llsit.sipduddy.fake.FakeAccountRepository("A")
         val repository = object : com.llsit.sipduddy.domain.repository.HydrationSettingsRepository {
             override val settings = kotlinx.coroutines.flow.flowOf(HydrationSettings())
-            override suspend fun save(settings: HydrationSettings) { accounts.owner.value = "B" }
+            override suspend fun save(settings: HydrationSettings) {
+                accounts.owner.value = "B"
+            }
         }
         val scheduler = FakeReminderScheduler()
         SaveHydrationSettingsUseCase(repository, scheduler, accounts)(HydrationSettings(3000), "A")

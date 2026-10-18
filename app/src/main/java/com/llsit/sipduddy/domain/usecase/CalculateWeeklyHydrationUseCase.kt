@@ -8,7 +8,7 @@ import java.time.Instant
 class CalculateWeeklyHydrationUseCase {
     operator fun invoke(
         entries: List<DrinkEntry>,
-        context: DateContext
+        context: DateContext,
     ): List<DailyHydrationSummary> {
         val firstDate = context.date.minusDays(6)
         val currentDayEnd =
@@ -20,9 +20,10 @@ class CalculateWeeklyHydrationUseCase {
         return (6 downTo 0).map { offset ->
             val date = context.date.minusDays(offset.toLong())
             DailyHydrationSummary(
-                date, grouped[date].orEmpty().sortedWith(
+                date,
+                grouped[date].orEmpty().sortedWith(
                     compareByDescending<DrinkEntry> { it.timestamp }.thenByDescending { it.id },
-                )
+                ),
             )
         }
     }

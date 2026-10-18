@@ -12,11 +12,13 @@ internal fun DeleteDrinkDialog(
     entry: DrinkEntry,
     busy: Boolean,
     onConfirm: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss, title = { Text("ลบรายการนี้?") },
+        onDismissRequest = onDismiss,
+        title = { Text("ลบรายการนี้?") },
         text = { Text("${entry.drink.title} ${entry.amountMl} มล. จะถูกลบออกจากประวัติ") },
         confirmButton = { TextButton(onClick = onConfirm, enabled = !busy) { Text("ลบรายการ") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("เก็บไว้") } })
+        dismissButton = { TextButton(onClick = onDismiss) { Text("เก็บไว้") } },
+    )
 }

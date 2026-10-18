@@ -18,8 +18,10 @@ class AndroidReminderScheduler(
     override fun schedule(settings: ReminderSettings) {
         val manager = context.getSystemService(AlarmManager::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
-            context, 10, Intent(context, ReminderReceiver::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            context,
+            10,
+            Intent(context, ReminderReceiver::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         if (!settings.enabled) {
             manager.cancel(pendingIntent)
@@ -27,13 +29,16 @@ class AndroidReminderScheduler(
         }
         val next = calculateNextReminderUseCase(
             clock.instant().atZone(ZoneId.systemDefault()),
-            settings
-        ) ?: run { manager.cancel(pendingIntent); return }
+            settings,
+        ) ?: run {
+            manager.cancel(pendingIntent)
+            return
+        }
         // Replaces the same PendingIntent without cancelling the existing alarm before a successful update.
         manager.setAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
             next.toInstant().toEpochMilli(),
-            pendingIntent
+            pendingIntent,
         )
     }
 }

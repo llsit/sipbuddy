@@ -16,10 +16,15 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class DrinkDaoTest {
     private lateinit var database: HydrationDatabase
+
     @Before fun openDatabase() {
         database = Room.inMemoryDatabaseBuilder(InstrumentationRegistry.getInstrumentation().targetContext, HydrationDatabase::class.java).build()
     }
-    @After fun closeDatabase() { database.close() }
+
+    @After fun closeDatabase() {
+        database.close()
+    }
+
     @Test fun usesInclusiveStartExclusiveEndAndDeletesOnlySelectedRow() = runBlocking {
         val dao = database.drinks()
         listOf(99L, 100L, 101L, 200L).forEach { timestamp -> dao.insert(DrinkEntity(drink = "WATER", amountMl = 250, timestamp = timestamp)) }

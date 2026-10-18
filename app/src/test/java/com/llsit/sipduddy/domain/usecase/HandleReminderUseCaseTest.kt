@@ -21,9 +21,16 @@ class HandleReminderUseCaseTest {
             }
         }
         val useCase =
-            HandleReminderUseCase(RestoreReminderUseCase(repository, scheduler), publisher,
-                ShouldSendReminderUseCase(com.llsit.sipduddy.fake.FakeDrinkRepository(), repository,
-                    java.time.Clock.fixed(java.time.Instant.parse("2026-10-17T10:00:00Z"), java.time.ZoneOffset.UTC), { java.time.ZoneOffset.UTC }))
+            HandleReminderUseCase(
+                RestoreReminderUseCase(repository, scheduler),
+                publisher,
+                ShouldSendReminderUseCase(
+                    com.llsit.sipduddy.fake.FakeDrinkRepository(),
+                    repository,
+                    java.time.Clock.fixed(java.time.Instant.parse("2026-10-17T10:00:00Z"), java.time.ZoneOffset.UTC),
+                    { java.time.ZoneOffset.UTC },
+                ),
+            )
         useCase(shouldNotify = true)
         repository.settings.value = HydrationSettings(reminder = ReminderSettings(enabled = true))
         useCase(shouldNotify = false)

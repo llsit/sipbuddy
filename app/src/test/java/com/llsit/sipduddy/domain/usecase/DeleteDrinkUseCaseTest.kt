@@ -23,7 +23,8 @@ class DeleteDrinkUseCaseTest {
     @Test
     fun rejectsUnpersistedId() = runBlocking {
         try {
-            DeleteDrinkUseCase(FakeDrinkRepository())(0); fail("accepted invalid id")
+            DeleteDrinkUseCase(FakeDrinkRepository())(0)
+            fail("accepted invalid id")
         } catch (_: IllegalArgumentException) {
         }
     }

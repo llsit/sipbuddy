@@ -23,17 +23,23 @@ class HydrationSyncCoordinator(
                     // Includes remote changes and guest settings; scheduling never grants notification permission.
                     launch {
                         settings.observeRecord(owner).map { it.settings.reminder }.distinctUntilChanged().collect {
-                            try { restoreReminder() }
-                            catch (cancelled: CancellationException) { throw cancelled }
-                            catch (_: Exception) { /* Platform receiver retries the saved schedule. */ }
+                            try {
+                                restoreReminder()
+                            } catch (cancelled: CancellationException) {
+                                throw cancelled
+                            } catch (_: Exception) { /* Platform receiver retries the saved schedule. */ }
                         }
                     }
-                    if (owner.isNotEmpty()) launch {
-                        combine(database.sync().observeMutationVersion(owner),
-                            settings.observeRecord(owner).map { it.localVersion }) { history, preferences -> history to preferences }
-                            .distinctUntilChanged().debounce(500).collect { (history, preferences) ->
-                                if (history > 0 || preferences > 0) scheduler.request(owner)
-                            }
+                    if (owner.isNotEmpty()) {
+                        launch {
+                            combine(
+                                database.sync().observeMutationVersion(owner),
+                                settings.observeRecord(owner).map { it.localVersion },
+                            ) { history, preferences -> history to preferences }
+                                .distinctUntilChanged().debounce(500).collect { (history, preferences) ->
+                                    if (history > 0 || preferences > 0) scheduler.request(owner)
+                                }
+                        }
                     }
                 }
             }

@@ -21,16 +21,15 @@ class ObserveHydrationOverviewUseCase(
     private val dispatcher: CoroutineDispatcher,
 ) {
     @OptIn(ExperimentalCoroutinesApi::class)
-    operator fun invoke(): Flow<HydrationOverview> =
-        dateProvider.dates.distinctUntilChanged().flatMapLatest { context ->
-            val start =
-                context.date.minusDays(6).atStartOfDay(context.zone).toInstant().toEpochMilli()
-            val end = context.date.plusDays(1).atStartOfDay(context.zone).toInstant().toEpochMilli()
-            val days = drinkRepository.observeEntries(start, end)
-                .distinctUntilChanged()
-                .map { calculateWeeklyHydrationUseCase(it, context) }
-            combine(days, settingsRepository.settings.distinctUntilChanged()) { summaries, settings ->
-                HydrationOverview(context, settings, summaries)
-            }
-        }.flowOn(dispatcher)
+    operator fun invoke(): Flow<HydrationOverview> = dateProvider.dates.distinctUntilChanged().flatMapLatest { context ->
+        val start =
+            context.date.minusDays(6).atStartOfDay(context.zone).toInstant().toEpochMilli()
+        val end = context.date.plusDays(1).atStartOfDay(context.zone).toInstant().toEpochMilli()
+        val days = drinkRepository.observeEntries(start, end)
+            .distinctUntilChanged()
+            .map { calculateWeeklyHydrationUseCase(it, context) }
+        combine(days, settingsRepository.settings.distinctUntilChanged()) { summaries, settings ->
+            HydrationOverview(context, settings, summaries)
+        }
+    }.flowOn(dispatcher)
 }

@@ -14,7 +14,9 @@ import kotlinx.coroutines.withTimeout
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-class ReminderReceiver : BroadcastReceiver(), KoinComponent {
+class ReminderReceiver :
+    BroadcastReceiver(),
+    KoinComponent {
     private val handleReminderUseCase: HandleReminderUseCase by inject()
 
     override fun onReceive(context: Context, intent: Intent) {

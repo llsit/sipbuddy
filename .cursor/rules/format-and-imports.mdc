@@ -1,0 +1,11 @@
+---
+description: Reformat code and optimize imports after every source addition or edit in SipBuddy.
+alwaysApply: true
+---
+
+- After every code edit or source-file addition, reformat the changed files and optimize imports before marking the task complete.
+- For Kotlin and Gradle Kotlin, run `./gradlew.bat formatKotlin checkKotlinFormat`; use the repository `.editorconfig`.
+- Remove unused/duplicate imports and sort imports, preserving extension/delegate imports needed by Kotlin and Compose.
+- Reformat edited Android XML with Android Studio Reformat Code or the bundled CLI formatter.
+- Exclude generated output, build/cache folders, IDE metadata and private configuration.
+- Preserve unrelated changes and validate bulk formatting with build, lint and relevant tests. See `AGENTS.md`.

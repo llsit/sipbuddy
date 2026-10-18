@@ -1,6 +1,6 @@
-import java.util.Properties
 import java.net.URI
 import java.util.Base64
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.ksp)
@@ -21,10 +21,12 @@ val supabaseKey = configValue("SUPABASE_PUBLISHABLE_KEY").trim()
 require(supabaseUrl.isBlank() || (URI(supabaseUrl).let { it.scheme == "https" && !it.host.isNullOrBlank() })) {
     "SUPABASE_URL must be HTTPS"
 }
-require(supabaseKey.isBlank() || supabaseKey.startsWith("sb_publishable_") || runCatching {
-    val payload = String(Base64.getUrlDecoder().decode(supabaseKey.split('.')[1]))
-    Regex("\"role\"\\s*:\\s*\"anon\"").containsMatchIn(payload)
-}.getOrDefault(false)) { "Use a publishable/anon key, never a secret or service_role key" }
+require(
+    supabaseKey.isBlank() || supabaseKey.startsWith("sb_publishable_") || runCatching {
+        val payload = String(Base64.getUrlDecoder().decode(supabaseKey.split('.')[1]))
+        Regex("\"role\"\\s*:\\s*\"anon\"").containsMatchIn(payload)
+    }.getOrDefault(false),
+) { "Use a publishable/anon key, never a secret or service_role key" }
 
 android {
     namespace = "com.llsit.sipduddy"

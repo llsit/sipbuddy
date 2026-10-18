@@ -1,36 +1,36 @@
 package com.llsit.sipduddy.presentation
 
-import com.llsit.sipduddy.domain.repository.AccountRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.llsit.sipduddy.domain.model.DrinkEntry
-import com.llsit.sipduddy.domain.usecase.EditDrinkUseCase
-import com.llsit.sipduddy.domain.usecase.RestoreDrinkUseCase
-import kotlinx.coroutines.sync.withLock
 import com.llsit.sipduddy.domain.model.DrinkType
 import com.llsit.sipduddy.domain.model.HydrationSettings
 import com.llsit.sipduddy.domain.model.SaveHydrationSettingsResult
+import com.llsit.sipduddy.domain.repository.AccountRepository
 import com.llsit.sipduddy.domain.usecase.AddDrinkUseCase
 import com.llsit.sipduddy.domain.usecase.DeleteDrinkUseCase
+import com.llsit.sipduddy.domain.usecase.EditDrinkUseCase
 import com.llsit.sipduddy.domain.usecase.ObserveHydrationOverviewUseCase
+import com.llsit.sipduddy.domain.usecase.RestoreDrinkUseCase
 import com.llsit.sipduddy.domain.usecase.SaveHydrationSettingsUseCase
 import com.llsit.sipduddy.presentation.model.HydrationUiState
 import com.llsit.sipduddy.presentation.model.OverviewLoadState
 import com.llsit.sipduddy.presentation.model.UiMessage
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
-import java.util.concurrent.atomic.AtomicLong
+import kotlinx.coroutines.sync.withLock
 
 class HydrationViewModel(
     observeHydrationOverviewUseCase: ObserveHydrationOverviewUseCase,
@@ -56,8 +56,12 @@ class HydrationViewModel(
     // stateIn retains the loaded screen on resume; initial loading comes from HydrationUiState.
     private val overview = retryVersion.flatMapLatest {
         observeHydrationOverviewUseCase()
-            .filter { overview -> isCurrentAccount() && (boundOwner == null ||
-                overview.settings.ownerId == boundOwner && overview.days.all { day -> day.entries.all { entry -> entry.ownerId == boundOwner } }) }
+            .filter { overview ->
+                isCurrentAccount() && (
+                    boundOwner == null ||
+                        (overview.settings.ownerId == boundOwner && overview.days.all { day -> day.entries.all { entry -> entry.ownerId == boundOwner } })
+                    )
+            }
             .map<_, OverviewLoadState> { OverviewLoadState.Loaded(it) }
             .catch { exception ->
                 if (exception is CancellationException) throw exception
@@ -70,7 +74,7 @@ class HydrationViewModel(
         isSaving,
         isAddSheetVisible,
         message,
-        editingEntry
+        editingEntry,
     ) { loaded, saving, sheetVisible, currentMessage, editing ->
         HydrationUiState(
             loading = loaded is OverviewLoadState.Loading,
@@ -103,12 +107,15 @@ class HydrationViewModel(
 
     fun saveDrink(drink: DrinkType, amountMl: Int) {
         val editing = editingEntry.value
-        if (editing == null) add(drink, amountMl)
-        else launchAction {
-            editDrinkUseCase(editing.id, drink, amountMl)
-            isAddSheetVisible.value = false
-            editingEntry.value = null
-            showMessage("แก้ไขรายการแล้ว")
+        if (editing == null) {
+            add(drink, amountMl)
+        } else {
+            launchAction {
+                editDrinkUseCase(editing.id, drink, amountMl)
+                isAddSheetVisible.value = false
+                editingEntry.value = null
+                showMessage("แก้ไขรายการแล้ว")
+            }
         }
     }
 
@@ -153,8 +160,11 @@ class HydrationViewModel(
     fun save(settings: HydrationSettings) = launchAction {
         val result = saveHydrationSettingsUseCase(settings, boundOwner)
         showMessage(
-            if (result == SaveHydrationSettingsResult.SAVED) "บันทึกการตั้งค่าแล้ว"
-            else "บันทึกการตั้งค่าแล้ว แต่ตั้งเวลาเตือนไม่สำเร็จ กรุณาลองบันทึกอีกครั้ง"
+            if (result == SaveHydrationSettingsResult.SAVED) {
+                "บันทึกการตั้งค่าแล้ว"
+            } else {
+                "บันทึกการตั้งค่าแล้ว แต่ตั้งเวลาเตือนไม่สำเร็จ กรุณาลองบันทึกอีกครั้ง"
+            },
         )
     }
 

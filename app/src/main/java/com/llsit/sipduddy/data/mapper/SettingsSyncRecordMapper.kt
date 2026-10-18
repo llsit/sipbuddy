@@ -18,12 +18,20 @@ class SettingsSyncRecordMapper {
             require(value in 0..1439)
             return ReminderTime(value / 60, value % 60)
         }
-        val quiet = QuietHours(json.getValue("quiet_enabled").jsonPrimitive.boolean,
-            time(json.getValue("quiet_start").jsonPrimitive.int), time(json.getValue("quiet_end").jsonPrimitive.int))
-        return HydrationSettings(json.getValue("goal_ml").jsonPrimitive.int,
-            ReminderSettings(json.getValue("reminder_enabled").jsonPrimitive.boolean,
-                json.getValue("reminder_times").jsonArray.map { time(it.jsonPrimitive.int) }, quiet,
-                json.getValue("stop_at_goal").jsonPrimitive.boolean))
+        val quiet = QuietHours(
+            json.getValue("quiet_enabled").jsonPrimitive.boolean,
+            time(json.getValue("quiet_start").jsonPrimitive.int),
+            time(json.getValue("quiet_end").jsonPrimitive.int),
+        )
+        return HydrationSettings(
+            json.getValue("goal_ml").jsonPrimitive.int,
+            ReminderSettings(
+                json.getValue("reminder_enabled").jsonPrimitive.boolean,
+                json.getValue("reminder_times").jsonArray.map { time(it.jsonPrimitive.int) },
+                quiet,
+                json.getValue("stop_at_goal").jsonPrimitive.boolean,
+            ),
+        )
     }
     fun encode(record: SettingsSyncRecord): String = buildJsonObject {
         put("settings", encodeSettings(record.settings))
@@ -34,9 +42,14 @@ class SettingsSyncRecordMapper {
     }.toString()
     fun decode(owner: String, value: String): SettingsSyncRecord {
         val json = Json.parseToJsonElement(value).jsonObject
-        return SettingsSyncRecord(owner, decodeSettings(json.getValue("settings").jsonObject),
-            json.getValue("version").jsonPrimitive.long, json.getValue("generation").jsonPrimitive.long,
-            json.getValue("operation").jsonPrimitive.content, json.getValue("pending").jsonPrimitive.boolean)
+        return SettingsSyncRecord(
+            owner,
+            decodeSettings(json.getValue("settings").jsonObject),
+            json.getValue("version").jsonPrimitive.long,
+            json.getValue("generation").jsonPrimitive.long,
+            json.getValue("operation").jsonPrimitive.content,
+            json.getValue("pending").jsonPrimitive.boolean,
+        )
     }
     fun decodeRemote(json: JsonObject): SettingsSyncRecord {
         val owner = json.getValue("owner_id").jsonPrimitive.content
@@ -44,7 +57,11 @@ class SettingsSyncRecordMapper {
         val version = json.getValue("version").jsonPrimitive.long.also { require(it > 0) }
         val operation = json.getValue("last_operation_id").jsonPrimitive.content
         java.util.UUID.fromString(operation)
-        return SettingsSyncRecord(owner, decodeSettings(json.getValue("settings").jsonObject), version,
-            operationId = operation)
+        return SettingsSyncRecord(
+            owner,
+            decodeSettings(json.getValue("settings").jsonObject),
+            version,
+            operationId = operation,
+        )
     }
 }

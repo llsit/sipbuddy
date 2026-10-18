@@ -14,8 +14,12 @@ object HydrationDatabaseMigration {
             db.execSQL("ALTER TABLE drinks ADD COLUMN operationId TEXT NOT NULL DEFAULT ''")
             db.execSQL("ALTER TABLE drinks ADD COLUMN allowRestore INTEGER NOT NULL DEFAULT 0")
             db.query("SELECT id FROM drinks").use { cursor ->
-                while (cursor.moveToNext()) db.execSQL("UPDATE drinks SET remoteId=?,operationId=? WHERE id=?",
-                    arrayOf<Any>(UUID.randomUUID().toString(), UUID.randomUUID().toString(), cursor.getLong(0)))
+                while (cursor.moveToNext()) {
+                    db.execSQL(
+                        "UPDATE drinks SET remoteId=?,operationId=? WHERE id=?",
+                        arrayOf<Any>(UUID.randomUUID().toString(), UUID.randomUUID().toString(), cursor.getLong(0)),
+                    )
+                }
             }
             db.execSQL("CREATE UNIQUE INDEX index_drinks_ownerId_remoteId ON drinks(ownerId,remoteId)")
             db.execSQL("CREATE INDEX index_drinks_ownerId_pending ON drinks(ownerId,pending)")

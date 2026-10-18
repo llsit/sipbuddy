@@ -1,6 +1,5 @@
 package com.llsit.sipduddy.di
 import com.llsit.sipduddy.data.auth.ActiveAccountRepository
-import com.llsit.sipduddy.data.local.database.HydrationDatabase
 import com.llsit.sipduddy.data.mapper.RemoteDrinkMapper
 import com.llsit.sipduddy.data.mapper.SyncRecordMapper
 import com.llsit.sipduddy.data.repository.*
@@ -15,22 +14,22 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 val syncModule = module {
-    single { CoroutineScope(SupervisorJob()+Dispatchers.IO) }
-    single<AccountRepository> { ActiveAccountRepository(get(),get()) }
+    single { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
+    single<AccountRepository> { ActiveAccountRepository(get(), get()) }
     single<SyncRequestScheduler> { HydrationSyncScheduler(androidContext()) }
     single { SyncRuntimeState() }
     factory { com.llsit.sipduddy.data.mapper.SettingsSyncRecordMapper() }
-    single<RemoteSettingsSyncRepository> { SupabaseSettingsSyncRepository(get(),get()) }
-    factory { SyncHydrationSettingsUseCase(get(),get(),get()) }
+    single<RemoteSettingsSyncRepository> { SupabaseSettingsSyncRepository(get(), get()) }
+    factory { SyncHydrationSettingsUseCase(get(), get(), get()) }
     factory { RemoteDrinkMapper() }
     factory { SyncRecordMapper() }
-    single<LocalHydrationSyncRepository> { RoomHydrationSyncRepository(get(),get()) }
-    single<RemoteHydrationSyncRepository> { SupabaseHydrationSyncRepository(get(),get()) }
-    single<HydrationSyncRepository> { DefaultHydrationSyncRepository(get(),get(),get(),get(),get()) }
-    factory { SyncHydrationUseCase(get(),get(),get()) }
+    single<LocalHydrationSyncRepository> { RoomHydrationSyncRepository(get(), get()) }
+    single<RemoteHydrationSyncRepository> { SupabaseHydrationSyncRepository(get(), get()) }
+    single<HydrationSyncRepository> { DefaultHydrationSyncRepository(get(), get(), get(), get(), get()) }
+    factory { SyncHydrationUseCase(get(), get(), get()) }
     factory { ObserveSyncStatusUseCase(get()) }
     factory { RequestHydrationSyncUseCase(get()) }
     factory { ImportGuestHistoryUseCase(get()) }
-    single { HydrationSyncCoordinator(get(),get(),get(),get(),get(),get()) }
-    viewModel { parameters -> SyncViewModel(get(),get(),get(),parameters.getOrNull<String>()) }
+    single { HydrationSyncCoordinator(get(), get(), get(), get(), get(), get()) }
+    viewModel { parameters -> SyncViewModel(get(), get(), get(), parameters.getOrNull<String>()) }
 }

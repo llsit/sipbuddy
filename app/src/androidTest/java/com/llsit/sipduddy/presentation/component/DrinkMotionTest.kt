@@ -13,10 +13,10 @@ import androidx.compose.ui.test.performClick
 import com.llsit.sipduddy.domain.model.DrinkEntry
 import com.llsit.sipduddy.domain.model.DrinkType
 import com.llsit.sipduddy.ui.theme.SipDuddyTheme
+import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
-import java.time.ZoneOffset
 
 class DrinkMotionTest {
     @get:Rule val compose = createComposeRule()
@@ -61,9 +61,14 @@ class DrinkMotionTest {
             SipDuddyTheme {
                 LazyColumn {
                     items(rows.value, key = { it.id }) { entry ->
-                        DrinkEntryRow(entry, ZoneOffset.UTC, false, {},
+                        DrinkEntryRow(
+                            entry,
+                            ZoneOffset.UTC,
+                            false,
+                            {},
                             { removed -> rows.value = rows.value.filterNot { it.id == removed.id } },
-                            Modifier.animateItem())
+                            Modifier.animateItem(),
+                        )
                     }
                 }
             }

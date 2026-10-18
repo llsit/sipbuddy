@@ -8,7 +8,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import com.llsit.sipduddy.presentation.animation.SipBuddyMotion
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,11 +22,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.llsit.sipduddy.domain.model.DrinkEntry
+import com.llsit.sipduddy.presentation.animation.SipBuddyMotion
 import com.llsit.sipduddy.presentation.formatter.HydrationFormatters
 import com.llsit.sipduddy.presentation.mapper.symbol
 import com.llsit.sipduddy.presentation.mapper.title
@@ -50,7 +49,7 @@ internal fun DrinkEntryRow(
                 .fillMaxWidth()
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Surface(color = PaleBlue, shape = RoundedCornerShape(14.dp)) {
                 Crossfade(entry.drink, animationSpec = tween(SipBuddyMotion.CONTENT_MILLIS), label = "drink icon") { drink ->
@@ -63,7 +62,8 @@ internal fun DrinkEntryRow(
                 }
                 Text(
                     Instant.ofEpochMilli(entry.timestamp).atZone(zone)
-                        .format(HydrationFormatters.time), fontSize = 12.sp
+                        .format(HydrationFormatters.time),
+                    fontSize = 12.sp,
                 )
             }
             AnimatedContent(

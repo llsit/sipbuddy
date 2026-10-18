@@ -8,12 +8,12 @@ import com.llsit.sipduddy.domain.model.HydrationSettings
 import com.llsit.sipduddy.domain.model.ReminderSettings
 import com.llsit.sipduddy.domain.model.ReminderTime
 import com.llsit.sipduddy.fake.FakePreferencesDataStore
+import java.io.IOException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
 import org.junit.Test
-import java.io.IOException
 
 class DataStoreHydrationSettingsRepositoryTest {
     @Test
@@ -33,7 +33,8 @@ class DataStoreHydrationSettingsRepositoryTest {
         val store = FakePreferencesDataStore().apply { failure = IOException("disk full") }
         val repository = DataStoreHydrationSettingsRepository(store, HydrationSettingsMapper())
         try {
-            repository.save(HydrationSettings(3000)); fail("error swallowed")
+            repository.save(HydrationSettings(3000))
+            fail("error swallowed")
         } catch (_: IOException) {
         }
         assertEquals(HydrationSettings(), repository.settings.first())

@@ -4,9 +4,9 @@ import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import com.llsit.sipduddy.data.local.preferences.HydrationPreferenceKeys as Keys
 import com.llsit.sipduddy.domain.model.HydrationSettings
+import com.llsit.sipduddy.domain.model.QuietHours
 import com.llsit.sipduddy.domain.model.ReminderSettings
 import com.llsit.sipduddy.domain.model.ReminderTime
-import com.llsit.sipduddy.domain.model.QuietHours
 import java.time.LocalTime
 
 class HydrationSettingsMapper {
@@ -19,17 +19,26 @@ class HydrationSettingsMapper {
             val parts = token.split(':')
             val hour = parts.getOrNull(0)?.toIntOrNull()
             val minute = parts.getOrNull(1)?.toIntOrNull()
-            if (parts.size == 2 && hour != null && hour in 0..23 && minute != null && minute in 0..59)
-                ReminderTime(hour, minute) else null
+            if (parts.size == 2 && hour != null && hour in 0..23 && minute != null && minute in 0..59) {
+                ReminderTime(hour, minute)
+            } else {
+                null
+            }
         }?.distinct()?.sortedBy { it.hour * 60 + it.minute }?.take(ReminderSettings.MAX_TIMES)
-        val times = parsed?.takeIf { it.isNotEmpty() } ?: if (legacyHour != null || legacyMinute != null)
-            listOf(ReminderTime(legacyHour ?: 10, legacyMinute ?: 0)) else ReminderSettings.DEFAULT_TIMES
+        val times = parsed?.takeIf { it.isNotEmpty() } ?: if (legacyHour != null || legacyMinute != null) {
+            listOf(ReminderTime(legacyHour ?: 10, legacyMinute ?: 0))
+        } else {
+            ReminderSettings.DEFAULT_TIMES
+        }
         fun readTime(key: Preferences.Key<Int>, fallback: ReminderTime): ReminderTime {
             val minutes = preferences[key]?.takeIf { it in 0..1439 } ?: return fallback
             return ReminderTime(minutes / 60, minutes % 60)
         }
-        val quiet = QuietHours(preferences[Keys.quietEnabled] ?: true,
-            readTime(Keys.quietStart, ReminderTime(22, 0)), readTime(Keys.quietEnd, ReminderTime(7, 0)))
+        val quiet = QuietHours(
+            preferences[Keys.quietEnabled] ?: true,
+            readTime(Keys.quietStart, ReminderTime(22, 0)),
+            readTime(Keys.quietEnd, ReminderTime(7, 0)),
+        )
         val enabled = preferences[Keys.reminderEnabled] == true && times.any { !quiet.contains(LocalTime.of(it.hour, it.minute)) }
         return HydrationSettings(goal, ReminderSettings(enabled, times, quiet, preferences[Keys.stopAtGoal] ?: true))
     }

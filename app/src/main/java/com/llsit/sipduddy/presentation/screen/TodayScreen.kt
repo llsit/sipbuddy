@@ -1,7 +1,6 @@
 package com.llsit.sipduddy.presentation.screen
 
 import androidx.compose.animation.core.tween
-import com.llsit.sipduddy.presentation.animation.SipBuddyMotion
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,8 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,11 +22,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.llsit.sipduddy.domain.model.DateContext
-import com.llsit.sipduddy.domain.model.HydrationOverview
-import com.llsit.sipduddy.domain.model.HydrationSettings
 import com.llsit.sipduddy.domain.model.DrinkEntry
 import com.llsit.sipduddy.domain.model.DrinkType
+import com.llsit.sipduddy.domain.model.HydrationOverview
+import com.llsit.sipduddy.domain.model.HydrationSettings
 import com.llsit.sipduddy.domain.usecase.CalculateWeeklyHydrationUseCase
+import com.llsit.sipduddy.presentation.animation.SipBuddyMotion
 import com.llsit.sipduddy.presentation.component.DrinkEntryRow
 import com.llsit.sipduddy.presentation.component.EmptyState
 import com.llsit.sipduddy.presentation.component.SoftCard
@@ -53,23 +51,23 @@ internal fun TodayScreen(
     LazyColumn(
         modifier,
         contentPadding = PaddingValues(bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         item(key = "mascot", contentType = "header") {
             Column(
                 Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text("ค่อย ๆ จิบ ก็ถึงเป้าได้", fontWeight = FontWeight.Bold, fontSize = 20.sp)
                 Text(
                     overview.dateContext.date.format(HydrationFormatters.fullDate),
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
                 )
                 WaterMascot(overview.progress, Modifier.size(230.dp), waveEnabled)
                 Text(
                     if (overview.progress >= 1f) "เย้! วันนี้ถึงเป้าแล้ว ♡" else "เติมความสดชื่นให้บัดดี้กัน",
-                    fontWeight = FontWeight.Normal
+                    fontWeight = FontWeight.Normal,
                 )
             }
         }
@@ -78,7 +76,7 @@ internal fun TodayScreen(
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
+                    verticalAlignment = Alignment.Bottom,
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text("ดื่มไปแล้ววันนี้", fontSize = 13.sp)
@@ -87,7 +85,7 @@ internal fun TodayScreen(
                     Text(
                         "/ ${overview.settings.goalMl} มล.",
                         Modifier.padding(bottom = 8.dp),
-                        color = Ink.copy(alpha = .65f)
+                        color = Ink.copy(alpha = .65f),
                     )
                 }
                 LinearProgressIndicator(
@@ -96,11 +94,11 @@ internal fun TodayScreen(
                         .fillMaxWidth()
                         .height(10.dp),
                     color = Blue,
-                    trackColor = Color.White
+                    trackColor = Color.White,
                 )
                 Text(
                     if (overview.remainingMl == 0L) "สำเร็จแล้ว ดูแลตัวเองดีมากเลย" else "อีก ${overview.remainingMl} มล. ถึงเป้าหมาย",
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
                 )
             }
         }
@@ -108,16 +106,22 @@ internal fun TodayScreen(
             Text(
                 "จิบเล็ก ๆ ของวันนี้",
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
+                fontSize = 18.sp,
             )
         }
-        if (overview.today.entries.isEmpty()) item(
-            key = "empty",
-            contentType = "empty"
-        ) { EmptyState("เริ่มต้นด้วยน้ำสักแก้ว", "แตะบันทึกเครื่องดื่ม เพื่อเติมหยดแรกของวัน") }
+        if (overview.today.entries.isEmpty()) {
+            item(
+                key = "empty",
+                contentType = "empty",
+            ) { EmptyState("เริ่มต้นด้วยน้ำสักแก้ว", "แตะบันทึกเครื่องดื่ม เพื่อเติมหยดแรกของวัน") }
+        }
         items(overview.today.entries, key = { it.id }, contentType = { "drink_entry" }) { entry ->
             DrinkEntryRow(
-                entry, overview.dateContext.zone, busy, onEdit, onDelete,
+                entry,
+                overview.dateContext.zone,
+                busy,
+                onEdit,
+                onDelete,
                 modifier = Modifier.animateItem(
                     fadeInSpec = tween(SipBuddyMotion.CONTENT_MILLIS),
                     placementSpec = tween(SipBuddyMotion.PLACEMENT_MILLIS),
@@ -138,15 +142,19 @@ private fun TodayScreenPreview() {
             1,
             DrinkType.WATER,
             750,
-            date.atTime(9, 0).atZone(context.zone).toInstant().toEpochMilli()
-        )
+            date.atTime(9, 0).atZone(context.zone).toInstant().toEpochMilli(),
+        ),
     )
     SipDuddyTheme {
         TodayScreen(
             HydrationOverview(
                 context,
                 HydrationSettings(),
-                CalculateWeeklyHydrationUseCase()(entries, context)
-            ), false, onEdit = {}, onDelete = {})
+                CalculateWeeklyHydrationUseCase()(entries, context),
+            ),
+            false,
+            onEdit = {},
+            onDelete = {},
+        )
     }
 }

@@ -9,7 +9,9 @@ class SyncHydrationSettingsUseCase(
     private val accounts: AccountRepository,
 ) {
     suspend operator fun invoke(owner: String): SyncOutcome {
-        fun checkOwner() { check(owner.isNotEmpty() && accounts.owner.value == owner) }
+        fun checkOwner() {
+            check(owner.isNotEmpty() && accounts.owner.value == owner)
+        }
         checkOwner()
         var conflicts = 0
         val sent = local.read(owner)

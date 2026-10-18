@@ -32,13 +32,13 @@ internal fun WeeklyHydrationChart(overview: HydrationOverview) {
                 .fillMaxWidth()
                 .height(150.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.Bottom
+            verticalAlignment = Alignment.Bottom,
         ) {
             overview.days.forEach { day ->
                 Column(
                     Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text("${day.totalMl}", fontSize = 10.sp, maxLines = 1)
                     Box(
@@ -46,10 +46,15 @@ internal fun WeeklyHydrationChart(overview: HydrationOverview) {
                             .width(18.dp)
                             .height((day.totalMl.toFloat() / maximum * 90).coerceAtLeast(4f).dp)
                             .background(
-                                if (day.date == overview.dateContext.date) Blue else Color(
-                                    0xFF9CD5E8
-                                ), RoundedCornerShape(8.dp)
-                            )
+                                if (day.date == overview.dateContext.date) {
+                                    Blue
+                                } else {
+                                    Color(
+                                        0xFF9CD5E8,
+                                    )
+                                },
+                                RoundedCornerShape(8.dp),
+                            ),
                     )
                     Text(day.date.format(HydrationFormatters.weekday), fontSize = 11.sp)
                 }

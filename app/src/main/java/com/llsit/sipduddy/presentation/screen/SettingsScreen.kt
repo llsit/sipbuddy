@@ -14,7 +14,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -36,11 +35,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.llsit.sipduddy.domain.model.HydrationSettings
+import com.llsit.sipduddy.domain.model.QuietHours
 import com.llsit.sipduddy.domain.model.ReminderSettings
 import com.llsit.sipduddy.domain.model.ReminderTime
-import com.llsit.sipduddy.domain.model.QuietHours
-import com.llsit.sipduddy.presentation.component.ReminderSettingsEditor
 import com.llsit.sipduddy.presentation.component.EmptyState
+import com.llsit.sipduddy.presentation.component.ReminderSettingsEditor
 import com.llsit.sipduddy.presentation.component.SoftCard
 import com.llsit.sipduddy.presentation.notification.NotificationPermissionController
 
@@ -50,7 +49,7 @@ internal fun SettingsScreen(
     busy: Boolean,
     modifier: Modifier = Modifier,
     onSave: (HydrationSettings) -> Unit,
-    accountContent: @Composable () -> Unit = {}
+    accountContent: @Composable () -> Unit = {},
 ) {
     val prefs = settings
     var goal by rememberSaveable(prefs.goalMl) { mutableStateOf(prefs.goalMl.toString()) }
@@ -78,7 +77,7 @@ internal fun SettingsScreen(
         }
     Column(
         modifier.verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         accountContent()
         Text("ดูแลตัวเองในแบบคุณ", fontSize = 25.sp, fontWeight = FontWeight.Bold)
@@ -93,25 +92,32 @@ internal fun SettingsScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 isError = goal.toIntOrNull() !in HydrationSettings.MIN_GOAL_ML..HydrationSettings.MAX_GOAL_ML,
-                supportingText = { Text("ปรับได้ตั้งแต่ 250–10,000 มล.") })
+                supportingText = { Text("ปรับได้ตั้งแต่ 250–10,000 มล.") },
+            )
             Text("เลือกเป้าที่เหมาะกับตัวคุณ", fontSize = 12.sp)
         }
         SoftCard {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("เตือนให้จิบน้ำ", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Switch(checked = enabled, onCheckedChange = { enabled = it }, enabled = !busy)
             }
-            ReminderSettingsEditor(busy, times, quiet, stopAtGoal,
+            ReminderSettingsEditor(
+                busy,
+                times,
+                quiet,
+                stopAtGoal,
                 onTimesChange = { list -> timesValue = list.joinToString(",") { "${it.hour * 60 + it.minute}" } },
                 onQuietChange = {
                     quietEnabled = it.enabled
                     quietStart = it.start.hour * 60 + it.start.minute
                     quietEnd = it.end.hour * 60 + it.end.minute
-                }, onStopAtGoalChange = { stopAtGoal = it })
+                },
+                onStopAtGoalChange = { stopAtGoal = it },
+            )
             if (enabled && times.none { !quiet.contains(java.time.LocalTime.of(it.hour, it.minute)) }) {
                 Text("เลือกเวลาเตือนอย่างน้อยหนึ่งช่วงนอกช่วงพัก", color = MaterialTheme.colorScheme.error)
             }
@@ -119,11 +125,14 @@ internal fun SettingsScreen(
                 Text(
                     "ยังไม่ได้เปิดสิทธิ์แจ้งเตือน",
                     color = MaterialTheme.colorScheme.error,
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
                 )
                 TextButton(onClick = {
-                    if (Build.VERSION.SDK_INT >= 33) request.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    else permissionController.openSystemSettings()
+                    if (Build.VERSION.SDK_INT >= 33) {
+                        request.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        permissionController.openSystemSettings()
+                    }
                 }) { Text("ขอสิทธิ์แจ้งเตือน") }
             }
             TextButton(onClick = {
@@ -136,16 +145,16 @@ internal fun SettingsScreen(
                     onSave(
                         HydrationSettings(
                             it,
-                            ReminderSettings(enabled, times.sortedBy { it.hour * 60 + it.minute }, quiet, stopAtGoal)
-                        )
+                            ReminderSettings(enabled, times.sortedBy { it.hour * 60 + it.minute }, quiet, stopAtGoal),
+                        ),
                     )
                 }
             },
-            enabled = !busy && goal.toIntOrNull() in HydrationSettings.MIN_GOAL_ML..HydrationSettings.MAX_GOAL_ML
-                && (!enabled || times.any { !quiet.contains(java.time.LocalTime.of(it.hour, it.minute)) }),
+            enabled = !busy && goal.toIntOrNull() in HydrationSettings.MIN_GOAL_ML..HydrationSettings.MAX_GOAL_ML &&
+                (!enabled || times.any { !quiet.contains(java.time.LocalTime.of(it.hour, it.minute)) }),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(54.dp)
+                .height(54.dp),
         ) { Text(if (busy) "กำลังบันทึก…" else "บันทึกการตั้งค่า") }
         EmptyState("พื้นที่เล็ก ๆ ของคุณ", "ข้อมูลอยู่ในเครื่อง ใช้ได้ออฟไลน์ ไม่ต้องเข้าสู่ระบบ")
     }

@@ -7,6 +7,10 @@ import com.llsit.sipduddy.domain.model.HydrationOverview
 import com.llsit.sipduddy.fake.FakeDateProvider
 import com.llsit.sipduddy.fake.FakeDrinkRepository
 import com.llsit.sipduddy.fake.FakeHydrationSettingsRepository
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZoneOffset
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -16,15 +20,12 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.ZoneOffset
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObserveHydrationOverviewUseCaseTest {
     private val date = LocalDate.of(2026, 10, 17)
     private val zone = ZoneId.of("Asia/Bangkok")
+
     @Test
     fun queriesOnlyVisibleWindowAndObservesSettings() = runTest {
         val repository = FakeDrinkRepository()
@@ -34,16 +35,16 @@ class ObserveHydrationOverviewUseCaseTest {
             settings,
             FakeDateProvider(DateContext(date, zone)),
             CalculateWeeklyHydrationUseCase(),
-            StandardTestDispatcher(testScheduler)
+            StandardTestDispatcher(testScheduler),
         )
         assertEquals(7, useCase().first().days.size)
         assertEquals(
             date.minusDays(6).atStartOfDay(zone).toInstant().toEpochMilli(),
-            repository.lastStart
+            repository.lastStart,
         )
         assertEquals(
             date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli(),
-            repository.lastEnd
+            repository.lastEnd,
         )
     }
 
@@ -55,8 +56,8 @@ class ObserveHydrationOverviewUseCaseTest {
                 1,
                 DrinkType.WATER,
                 250,
-                Instant.parse("2026-10-16T18:00:00Z").toEpochMilli()
-            )
+                Instant.parse("2026-10-16T18:00:00Z").toEpochMilli(),
+            ),
         )
         val dates = FakeDateProvider(DateContext(date, zone))
         val values = mutableListOf<HydrationOverview>()
@@ -65,7 +66,7 @@ class ObserveHydrationOverviewUseCaseTest {
             FakeHydrationSettingsRepository(),
             dates,
             CalculateWeeklyHydrationUseCase(),
-            StandardTestDispatcher(testScheduler)
+            StandardTestDispatcher(testScheduler),
         )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase().collect { values += it } }
         runCurrent()
@@ -82,8 +83,13 @@ class ObserveHydrationOverviewUseCaseTest {
     @Test fun settingsChangesReuseGroupedDaysAndUnrelatedRowsDoNotEmit() = runTest {
         val repo = FakeDrinkRepository()
         val settings = FakeHydrationSettingsRepository()
-        val useCase = ObserveHydrationOverviewUseCase(repo, settings,
-            FakeDateProvider(DateContext(date, zone)), CalculateWeeklyHydrationUseCase(), StandardTestDispatcher(testScheduler))
+        val useCase = ObserveHydrationOverviewUseCase(
+            repo,
+            settings,
+            FakeDateProvider(DateContext(date, zone)),
+            CalculateWeeklyHydrationUseCase(),
+            StandardTestDispatcher(testScheduler),
+        )
         val values = mutableListOf<HydrationOverview>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { useCase().collect { values += it } }
         runCurrent()

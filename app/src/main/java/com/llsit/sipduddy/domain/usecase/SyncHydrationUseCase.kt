@@ -1,14 +1,19 @@
 package com.llsit.sipduddy.domain.usecase
+
 import com.llsit.sipduddy.domain.model.SyncOutcome
 import com.llsit.sipduddy.domain.repository.AccountRepository
 import com.llsit.sipduddy.domain.repository.LocalHydrationSyncRepository
 import com.llsit.sipduddy.domain.repository.RemoteHydrationSyncRepository
 
-class SyncHydrationUseCase(private val local: LocalHydrationSyncRepository,
-    private val remote: RemoteHydrationSyncRepository, private val accounts: AccountRepository) {
+class SyncHydrationUseCase(
+    private val local: LocalHydrationSyncRepository,
+    private val remote: RemoteHydrationSyncRepository,
+    private val accounts: AccountRepository,
+) {
     private fun checkOwner(owner: String) {
         check(owner.isNotEmpty() && accounts.owner.value == owner) { "Account changed" }
     }
+
     suspend operator fun invoke(owner: String): SyncOutcome {
         checkOwner(owner)
         var conflicts = 0
@@ -35,8 +40,11 @@ class SyncHydrationUseCase(private val local: LocalHydrationSyncRepository,
             checkOwner(owner)
             check(page.all { it.ownerId == owner })
             // UUID keyset pagination avoids offset drift; no timestamp cursor can skip late commits.
-            check(page.zipWithNext().all { (a,b) -> a.remoteId < b.remoteId })
-            check(after == null || page.all { it.remoteId > after!! })
+            check(page.zipWithNext().all { (a, b) -> a.remoteId < b.remoteId })
+            after?.let { a ->
+                check(page.all { it.remoteId > a })
+            } ?: true
+
             local.merge(owner, page)
             if (page.isEmpty()) break
             after = page.last().remoteId

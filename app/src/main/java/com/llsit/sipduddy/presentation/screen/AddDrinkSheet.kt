@@ -2,7 +2,6 @@ package com.llsit.sipduddy.presentation.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,7 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import com.llsit.sipduddy.presentation.component.AnimatedSelectionChip
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +29,7 @@ import com.llsit.sipduddy.domain.model.DrinkEntry
 import com.llsit.sipduddy.domain.model.DrinkType
 import com.llsit.sipduddy.domain.usecase.AddDrinkUseCase.Companion.MAX_AMOUNT_ML
 import com.llsit.sipduddy.domain.usecase.AddDrinkUseCase.Companion.MIN_AMOUNT_ML
+import com.llsit.sipduddy.presentation.component.AnimatedSelectionChip
 import com.llsit.sipduddy.presentation.mapper.symbol
 import com.llsit.sipduddy.presentation.mapper.title
 
@@ -45,7 +44,7 @@ internal fun AddDrinkSheet(busy: Boolean, onSave: (DrinkType, Int) -> Unit, entr
             .imePadding()
             .verticalScroll(rememberScrollState())
             .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(if (entry == null) "วันนี้จิบอะไรดี?" else "แก้ไขรายการ", fontSize = 25.sp, fontWeight = FontWeight.Bold)
         Text("ทุกเครื่องดื่มนับตามปริมาณที่บันทึก", fontSize = 13.sp)
@@ -55,7 +54,8 @@ internal fun AddDrinkSheet(busy: Boolean, onSave: (DrinkType, Int) -> Unit, entr
                     enabled = !busy,
                     selected = drinkName == drink.name,
                     onClick = { drinkName = drink.name },
-                    label = "${drink.symbol} ${drink.title}")
+                    label = "${drink.symbol} ${drink.title}",
+                )
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -64,7 +64,8 @@ internal fun AddDrinkSheet(busy: Boolean, onSave: (DrinkType, Int) -> Unit, entr
                     enabled = !busy,
                     selected = amount == preset.toString(),
                     onClick = { amount = preset.toString() },
-                    label = "$preset มล.")
+                    label = "$preset มล.",
+                )
             }
         }
         OutlinedTextField(
@@ -76,14 +77,25 @@ internal fun AddDrinkSheet(busy: Boolean, onSave: (DrinkType, Int) -> Unit, entr
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             isError = ml == null || ml !in MIN_AMOUNT_ML..MAX_AMOUNT_ML,
-            supportingText = { Text("ระบุ 1–5,000 มล.") })
+            supportingText = { Text("ระบุ 1–5,000 มล.") },
+        )
         Button(
             onClick = { ml?.let { onSave(DrinkType.valueOf(drinkName), it) } },
             enabled = !busy && ml != null && ml in MIN_AMOUNT_ML..MAX_AMOUNT_ML,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(54.dp)
-        ) { Text(if (busy) "กำลังบันทึก…" else if (entry != null) "บันทึกการแก้ไข" else "เติมให้บัดดี้ ♡") }
+                .height(54.dp),
+        ) {
+            Text(
+                if (busy) {
+                    "กำลังบันทึก…"
+                } else if (entry != null) {
+                    "บันทึกการแก้ไข"
+                } else {
+                    "เติมให้บัดดี้ ♡"
+                },
+            )
+        }
         Spacer(Modifier.height(16.dp))
     }
 }

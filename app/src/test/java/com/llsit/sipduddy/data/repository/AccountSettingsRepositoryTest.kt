@@ -13,6 +13,7 @@ class AccountSettingsRepositoryTest {
     private val store = FakePreferencesDataStore()
     private val accounts = FakeAccountRepository("A")
     private val repo = DataStoreHydrationSettingsRepository(store, HydrationSettingsMapper(), accounts)
+
     @Test fun legacyGoalBelongsOnlyToGuestAndAccountsRemainSeparate() = runTest {
         store.data.value = preferencesOf(intPreferencesKey("goal_ml") to 3500)
         assertEquals(2000, repo.settings.first().goalMl)
@@ -26,11 +27,17 @@ class AccountSettingsRepositoryTest {
         assertEquals(3000, repo.settings.first().goalMl)
         assertEquals("A", repo.settings.first().ownerId)
     }
+
     @Test fun staleSaveCannotWriteNewAccount() = runTest {
         accounts.owner.value = "B"
-        try { repo.saveForOwner(HydrationSettings(4000), "A"); fail() } catch (_: IllegalArgumentException) { }
-        assertFalse(repo.read("A").pending); assertFalse(repo.read("B").pending)
+        try {
+            repo.saveForOwner(HydrationSettings(4000), "A")
+            fail()
+        } catch (_: IllegalArgumentException) { }
+        assertFalse(repo.read("A").pending)
+        assertFalse(repo.read("B").pending)
     }
+
     @Test fun editDuringUploadSurvivesAndRebases() = runTest {
         repo.saveForOwner(HydrationSettings(3000), "A")
         val sent = repo.read("A")
@@ -38,11 +45,13 @@ class AccountSettingsRepositoryTest {
         repo.acknowledge(sent, sent.copy(serverVersion = 1, pending = false))
         val current = repo.read("A")
         assertEquals(4000, current.settings.goalMl)
-        assertTrue(current.pending); assertEquals(1L, current.serverVersion)
+        assertTrue(current.pending)
+        assertEquals(1L, current.serverVersion)
         assertNotEquals(sent.operationId, current.operationId)
         repo.merge(sent.copy(serverVersion = 2, pending = false))
         assertEquals(current, repo.read("A"))
     }
+
     @Test fun ackAndPullDoNotCreateNewMutationAndOldPullCannotOverwrite() = runTest {
         repo.saveForOwner(HydrationSettings(3000), "A")
         val sent = repo.read("A")
@@ -54,15 +63,24 @@ class AccountSettingsRepositoryTest {
         assertEquals(3500, repo.read("A").settings.goalMl)
         assertEquals(sent.localVersion, repo.read("A").localVersion)
     }
+
     @Test fun offlineOutboxAndReminderDetailsSurviveRepositoryRestart() = runTest {
-        val settings = HydrationSettings(2750, ReminderSettings(true,
-            listOf(ReminderTime(9, 15), ReminderTime(16, 45)), QuietHours(true, ReminderTime(23, 0), ReminderTime(6, 30)), false))
+        val settings = HydrationSettings(
+            2750,
+            ReminderSettings(
+                true,
+                listOf(ReminderTime(9, 15), ReminderTime(16, 45)),
+                QuietHours(true, ReminderTime(23, 0), ReminderTime(6, 30)),
+                false,
+            ),
+        )
         repo.saveForOwner(settings, "A")
         val restarted = DataStoreHydrationSettingsRepository(store, HydrationSettingsMapper(), accounts)
         assertEquals(settings, restarted.read("A").settings)
         assertEquals(repo.read("A"), restarted.read("A"))
         assertTrue(restarted.read("A").pending)
     }
+
     @Test fun guestWritesNeverEnterCloudOutbox() = runTest {
         accounts.owner.value = ""
         repo.saveForOwner(HydrationSettings(4500), "")

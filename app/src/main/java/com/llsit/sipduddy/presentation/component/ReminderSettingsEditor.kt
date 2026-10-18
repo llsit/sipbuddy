@@ -9,9 +9,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.llsit.sipduddy.domain.model.QuietHours
@@ -30,8 +30,11 @@ internal fun ReminderSettingsEditor(
 ) {
     var timeError by rememberSaveable { mutableStateOf<String?>(null) }
     times.forEachIndexed { index, time ->
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             ReminderTimeButton("เวลา", time, !busy) { updated ->
                 if (updated != time && updated in times) {
                     timeError = "มีเวลาเตือนนี้แล้ว กรุณาเลือกเวลาอื่น"
@@ -40,8 +43,10 @@ internal fun ReminderSettingsEditor(
                     onTimesChange(times.toMutableList().also { it[index] = updated })
                 }
             }
-            TextButton(enabled = !busy && times.size > 1,
-                onClick = { onTimesChange(times.filterIndexed { i, _ -> i != index }) }) { Text("ลบเวลา") }
+            TextButton(
+                enabled = !busy && times.size > 1,
+                onClick = { onTimesChange(times.filterIndexed { i, _ -> i != index }) },
+            ) { Text("ลบเวลา") }
         }
     }
     timeError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -56,8 +61,11 @@ internal fun ReminderSettingsEditor(
             timeError = "ไม่มีเวลาว่างนอกช่วงพัก กรุณาปรับช่วงพักก่อน"
         }
     }) { Text("+ เพิ่มเวลาเตือน (สูงสุด 12 ช่วง)") }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text("พักการเตือนตอนกลางคืน")
         Switch(quiet.enabled, { onQuietChange(quiet.copy(enabled = it)) }, enabled = !busy)
     }
@@ -66,8 +74,11 @@ internal fun ReminderSettingsEditor(
         ReminderTimeButton("ถึง", quiet.end, !busy && quiet.enabled) { onQuietChange(quiet.copy(end = it)) }
     }
     Text("เวลาเริ่มเท่ากับเวลาสิ้นสุด หมายถึงไม่พักการเตือน")
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text("หยุดเตือนเมื่อถึงเป้าของวันนี้", Modifier.weight(1f))
         Switch(stopAtGoal, onStopAtGoalChange, enabled = !busy)
     }

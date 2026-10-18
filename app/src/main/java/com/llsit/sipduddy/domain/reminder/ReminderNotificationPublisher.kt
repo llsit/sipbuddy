@@ -1,3 +1,5 @@
 package com.llsit.sipduddy.domain.reminder
 
-interface ReminderNotificationPublisher { fun show() }
+interface ReminderNotificationPublisher {
+    fun show()
+}

@@ -67,3 +67,15 @@ Optional Supabase email/password and Google sign-in are available from Settings.
 Instrumented tests target the separate debuggable `com.llsit.sipduddy.qa` package (`connectedQaAndroidTest`) so automatic test cleanup cannot uninstall the regular diary app. Never change testBuildType to debug on a device containing personal records.
 
 Account goal/reminder sync: see [docs/SETTINGS_SYNC.md](docs/SETTINGS_SYNC.md) for migration 003, conflict behavior and verification.
+
+## Formatting and imports
+
+After adding or editing Kotlin/Gradle Kotlin code, run:
+
+```powershell
+.\gradlew.bat formatKotlin checkKotlinFormat
+```
+
+`formatKotlin` reformats source files, removes unused imports and orders imports. `checkKotlinFormat` validates the same rules without changing files. The pinned ktlint tool is a development dependency only; it is not bundled in the Android app. Shared style is in `.editorconfig`. Existing wildcard imports remain supported; extension and Compose delegate imports must remain when needed.
+
+Use Android Studio Reformat Code for Android XML. Generated build/cache folders and private configuration are excluded from formatting. `AGENTS.md` and `.cursor/rules/format-and-imports.mdc` require formatting and import cleanup after every agent code change.
