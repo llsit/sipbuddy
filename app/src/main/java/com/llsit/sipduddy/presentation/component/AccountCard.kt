@@ -12,7 +12,8 @@ internal fun AccountCard(state: AuthUiState, onOpen: () -> Unit, onSignOut: () -
         Text("บัญชี SipBuddy", style = MaterialTheme.typography.titleMedium)
         val user = (state.session as? AuthSession.SignedIn)?.user
         Text(user?.email ?: if (state.session == AuthSession.Loading) "กำลังตรวจบัญชี…" else "ใช้งานบนเครื่องนี้แบบไม่เข้าสู่ระบบ")
-        Text("ประวัติการดื่มเก็บเฉพาะในเครื่องนี้ ยังไม่มีการซิงก์หรือแยกประวัติตามบัญชี", style = MaterialTheme.typography.bodySmall)
+        Text("ประวัติแยกตามบัญชี บันทึกออฟไลน์ได้ และซิงก์เมื่อเชื่อมต่ออินเทอร์เน็ต", style = MaterialTheme.typography.bodySmall)
+        if ((state.session as? AuthSession.SignedIn)?.isOffline == true) Text("ออฟไลน์: กำลังใช้ประวัติที่เก็บในเครื่อง")
         if (!state.isConfigured) Text("ระบบบัญชียังไม่พร้อมใช้งาน คุณยังบันทึกน้ำได้ตามปกติ", style = MaterialTheme.typography.bodySmall)
         if (user == null) Button(onClick = onOpen, enabled = state.isConfigured && !state.isBusy && state.session != AuthSession.Loading,
             modifier = Modifier.fillMaxWidth()) { Text("เข้าสู่ระบบ / สมัครสมาชิก") }

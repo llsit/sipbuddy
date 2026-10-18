@@ -17,7 +17,11 @@ coroutines = "1.11.0"
 supabase = "3.6.0"
 ktor = "3.4.3"
 
+work = "2.11.2"
+
 [libraries]
+work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
+supabase-postgrest = { module = "io.github.jan-tennert.supabase:postgrest-kt", version.ref = "supabase" }
 supabase-auth = { module = "io.github.jan-tennert.supabase:auth-kt", version.ref = "supabase" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }

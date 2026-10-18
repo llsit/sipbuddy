@@ -91,6 +91,8 @@ android {
 
 dependencies {
     implementation(libs.supabase.auth)
+    implementation(libs.supabase.postgrest)
+    implementation(libs.work.runtime)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.coroutines.android)
     implementation(libs.room.runtime)

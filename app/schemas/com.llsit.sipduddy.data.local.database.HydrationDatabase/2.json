@@ -1,0 +1,170 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "5a3d5187aec02fb591c57ae8df4c7df8",
+    "entities": [
+      {
+        "tableName": "drinks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `drink` TEXT NOT NULL, `amountMl` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, `ownerId` TEXT NOT NULL DEFAULT '', `remoteId` TEXT NOT NULL DEFAULT '', `serverVersion` INTEGER NOT NULL DEFAULT 0, `localVersion` INTEGER NOT NULL DEFAULT 0, `pending` INTEGER NOT NULL DEFAULT 1, `deleted` INTEGER NOT NULL DEFAULT 0, `operationId` TEXT NOT NULL DEFAULT '', `allowRestore` INTEGER NOT NULL DEFAULT 0)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "drink",
+            "columnName": "drink",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amountMl",
+            "columnName": "amountMl",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ownerId",
+            "columnName": "ownerId",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "serverVersion",
+            "columnName": "serverVersion",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "localVersion",
+            "columnName": "localVersion",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "pending",
+            "columnName": "pending",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "deleted",
+            "columnName": "deleted",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "operationId",
+            "columnName": "operationId",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "allowRestore",
+            "columnName": "allowRestore",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_drinks_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_drinks_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          },
+          {
+            "name": "index_drinks_ownerId_remoteId",
+            "unique": true,
+            "columnNames": [
+              "ownerId",
+              "remoteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_drinks_ownerId_remoteId` ON `${TABLE_NAME}` (`ownerId`, `remoteId`)"
+          },
+          {
+            "name": "index_drinks_ownerId_pending",
+            "unique": false,
+            "columnNames": [
+              "ownerId",
+              "pending"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_drinks_ownerId_pending` ON `${TABLE_NAME}` (`ownerId`, `pending`)"
+          }
+        ]
+      },
+      {
+        "tableName": "sync_metadata",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`ownerId` TEXT NOT NULL, `lastSuccessAt` INTEGER, `error` TEXT, `conflicts` INTEGER NOT NULL, PRIMARY KEY(`ownerId`))",
+        "fields": [
+          {
+            "fieldPath": "ownerId",
+            "columnName": "ownerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSuccessAt",
+            "columnName": "lastSuccessAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "error",
+            "columnName": "error",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "conflicts",
+            "columnName": "conflicts",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "ownerId"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5a3d5187aec02fb591c57ae8df4c7df8')"
+    ]
+  }
+}

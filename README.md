@@ -1,6 +1,6 @@
 # SipBuddy
 
-Native Android hydration diary. Kotlin, Jetpack Compose Material 3, MVVM, StateFlow, Koin, Room and Preferences DataStore. Android 9+ (API 28). Offline diary with optional Supabase email/password and Google authentication. Internet is needed only for account actions.
+Native Android hydration diary. Kotlin, Jetpack Compose Material 3, MVVM, StateFlow, Koin, Room and Preferences DataStore. Android 9+ (API 28). Offline diary with optional Supabase email/password and Google authentication. Signed-in history syncs to Supabase; guest history and all local recording remain available offline.
 
 ## Structure
 
@@ -62,6 +62,6 @@ The cream and blue palette and original Canvas mascot remain. Screens use a cent
 
 ## Account login
 
-Optional Supabase email/password and Google sign-in are available from Settings. See [Supabase authentication setup](docs/SUPABASE_AUTH.md) for local configuration, Dashboard redirect/provider setup, session handling and testing. Hydration records remain device-local and shared across guests/accounts on that device; authentication does not sync or back up Room data.
+Optional Supabase email/password and Google sign-in are available from Settings. See [Supabase authentication setup](docs/SUPABASE_AUTH.md) for local configuration, Dashboard redirect/provider setup, session handling and testing. Hydration history is isolated by account and syncs through a durable Room outbox. Guests keep separate local history and can explicitly move it into the signed-in account. See [offline sync design and setup](docs/HYDRATION_SYNC.md).
 
 Instrumented tests target the separate debuggable `com.llsit.sipduddy.qa` package (`connectedQaAndroidTest`) so automatic test cleanup cannot uninstall the regular diary app. Never change testBuildType to debug on a device containing personal records.

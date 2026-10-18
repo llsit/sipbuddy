@@ -1,5 +1,6 @@
 package com.llsit.sipduddy.presentation
 
+import com.llsit.sipduddy.domain.repository.AccountRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.llsit.sipduddy.domain.model.DrinkEntry
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -37,7 +39,11 @@ class HydrationViewModel(
     private val saveHydrationSettingsUseCase: SaveHydrationSettingsUseCase,
     private val editDrinkUseCase: EditDrinkUseCase,
     private val restoreDrinkUseCase: RestoreDrinkUseCase,
+    private val accounts: AccountRepository? = null,
+    expectedOwner: String? = accounts?.owner?.value,
 ) : ViewModel() {
+    private val boundOwner = expectedOwner
+    private fun isCurrentAccount() = accounts == null || accounts.owner.value == boundOwner
     private val retryVersion = MutableStateFlow(0)
     private val isSaving = MutableStateFlow(false)
     private val isAddSheetVisible = MutableStateFlow(false)
@@ -50,6 +56,8 @@ class HydrationViewModel(
     // stateIn retains the loaded screen on resume; initial loading comes from HydrationUiState.
     private val overview = retryVersion.flatMapLatest {
         observeHydrationOverviewUseCase()
+            .filter { overview -> isCurrentAccount() && (boundOwner == null ||
+                overview.days.all { day -> day.entries.all { entry -> entry.ownerId == boundOwner } }) }
             .map<_, OverviewLoadState> { OverviewLoadState.Loaded(it) }
             .catch { exception ->
                 if (exception is CancellationException) throw exception
@@ -109,7 +117,7 @@ class HydrationViewModel(
     }
 
     fun add(drink: DrinkType, amountMl: Int) = launchAction {
-        addDrinkUseCase(drink, amountMl)
+        addDrinkUseCase(drink, amountMl, boundOwner)
         isAddSheetVisible.value = false
         showMessage("บันทึกเครื่องดื่มแล้ว")
     }
@@ -120,11 +128,13 @@ class HydrationViewModel(
     }
 
     fun undoDelete(id: Long) {
+        if (!isCurrentAccount()) return
         val pending = message.value?.takeIf { it.id == id && it.undoEntry != null } ?: return
         if (!message.compareAndSet(pending, null)) return
         viewModelScope.launch {
             // Queue a pressed Undo rather than dropping it while another write holds the mutex.
             actionMutex.withLock {
+                if (!isCurrentAccount()) return@withLock
                 isSaving.value = true
                 try {
                     val restored = restoreDrinkUseCase(requireNotNull(pending.undoEntry))
@@ -157,11 +167,11 @@ class HydrationViewModel(
     }
 
     private fun launchAction(action: suspend () -> Unit) {
-        if (!actionMutex.tryLock()) return
+        if (!isCurrentAccount() || !actionMutex.tryLock()) return
         isSaving.value = true
         viewModelScope.launch {
             try {
-                action()
+                if (isCurrentAccount()) action()
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: IllegalArgumentException) {

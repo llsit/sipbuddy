@@ -26,7 +26,7 @@ class RoomDrinkRepositoryTest {
     @Test fun editAndUndoMapExactIdsAndTimestampsAndDoNotOverwrite() = runBlocking {
         val dao = FakeDrinkDao()
         val repository = RoomDrinkRepository(dao, DrinkEntryMapper())
-        val entry = DrinkEntry(8, DrinkType.JUICE, 200, 1234)
+        val entry = DrinkEntry(8, DrinkType.JUICE, 200, 1234, ownerId="")
         assertTrue(repository.restore(entry))
         val edited = entry.copy(amountMl = 500)
         assertTrue(repository.update(edited))

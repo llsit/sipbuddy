@@ -12,7 +12,7 @@ import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flow
 
 class SupabaseAuthRepository(private val provider: SupabaseClientProvider) : AuthRepository {
     private val auth get() = checkNotNull(provider.client) { "ระบบบัญชียังไม่พร้อมใช้งาน" }.auth
@@ -23,14 +23,21 @@ class SupabaseAuthRepository(private val provider: SupabaseClientProvider) : Aut
     private suspend fun <T> request(block: suspend () -> T): T = try { block() }
     catch (cancelled: CancellationException) { throw cancelled }
     catch (error: Exception) { throw AuthException(AuthErrorMapper().format(error)) }
-    override val session: Flow<AuthSession> = provider.client?.auth?.sessionStatus?.map { status ->
-        when (status) {
-            SessionStatus.Initializing -> AuthSession.Loading
-            is SessionStatus.Authenticated -> status.session.user?.let { AuthSession.SignedIn(AuthUser(it.id, it.email)) }
-                ?: AuthSession.SignedOut
-            else -> AuthSession.SignedOut
+    override val session: Flow<AuthSession> = if (provider.client == null) flowOf(AuthSession.SignedOut) else flow {
+        // Cached identity is for LOCAL data only. Network calls still require a current SDK session and RLS.
+        var cachedUser = provider.sessionManager.loadSessionOrNull()?.user?.let { AuthUser(it.id, it.email) }
+        provider.client.auth.sessionStatus.collect { status ->
+            emit(when(status) {
+                SessionStatus.Initializing -> cachedUser?.let { AuthSession.SignedIn(it, isOffline = true) } ?: AuthSession.Loading
+                is SessionStatus.Authenticated -> {
+                    cachedUser = status.session.user?.let { AuthUser(it.id, it.email) }
+                    cachedUser?.let { AuthSession.SignedIn(it) } ?: AuthSession.SignedOut
+                }
+                is SessionStatus.RefreshFailure -> cachedUser?.let { AuthSession.SignedIn(it, isOffline = true) } ?: AuthSession.SignedOut
+                is SessionStatus.NotAuthenticated -> { cachedUser = null; AuthSession.SignedOut }
+            })
         }
-    } ?: flowOf(AuthSession.SignedOut)
+    }
     override suspend fun signIn(email: String, password: String) = request {
         auth.awaitInitialization()
         auth.signInWith(Email) { this.email = email; this.password = password }
@@ -47,7 +54,10 @@ class SupabaseAuthRepository(private val provider: SupabaseClientProvider) : Aut
         Unit
     }
     override suspend fun signOut() = request {
-        auth.signOut()
+        auth.awaitInitialization()
+        try { auth.signOut() }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) { auth.clearSession() }
         provider.recoveryRequired.value = false
     }
     override suspend fun sendPasswordReset(email: String) = request {

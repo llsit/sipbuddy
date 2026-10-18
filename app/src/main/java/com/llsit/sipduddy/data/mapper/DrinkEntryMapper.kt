@@ -10,6 +10,7 @@ class DrinkEntryMapper {
         drink = DrinkType.entries.firstOrNull { it.name == entity.drink } ?: DrinkType.OTHER,
         amountMl = entity.amountMl,
         timestamp = entity.timestamp,
+        ownerId = entity.ownerId,
     )
 
     fun toEntity(entry: DrinkEntry): DrinkEntity = DrinkEntity(
@@ -17,5 +18,6 @@ class DrinkEntryMapper {
         drink = entry.drink.name,
         amountMl = entry.amountMl,
         timestamp = entry.timestamp,
+        ownerId = entry.ownerId ?: "",
     )
 }

@@ -59,6 +59,7 @@ class HydrationViewModelTest {
         settings: FakeHydrationSettingsRepository = FakeHydrationSettingsRepository(),
         scheduler: FakeReminderScheduler = FakeReminderScheduler(),
         collectState: Boolean = true,
+        accounts: com.llsit.sipduddy.domain.repository.AccountRepository? = null,
     ): HydrationViewModel {
         val observe = ObserveHydrationOverviewUseCase(
             drinks,
@@ -73,7 +74,8 @@ class HydrationViewModelTest {
             DeleteDrinkUseCase(drinks),
             SaveHydrationSettingsUseCase(settings, scheduler),
             EditDrinkUseCase(drinks),
-            RestoreDrinkUseCase(drinks)
+            RestoreDrinkUseCase(drinks),
+            accounts
         )
         store.put("subject", viewModel)
         if (collectState) backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.state.collect { } }
@@ -255,5 +257,24 @@ class HydrationViewModelTest {
         gate.complete(Unit)
         runCurrent()
         assertFalse(vm.state.value.loading)
+    }
+    @Test fun oldAccountViewModelRejectsForeignEmissionsAndQueuedWrites() = runTest {
+        val accounts=com.llsit.sipduddy.fake.FakeAccountRepository("A")
+        val own=DrinkEntry(1,DrinkType.WATER,250,clock.millis(),ownerId="A")
+        val repo=FakeDrinkRepository().apply { entries.value=listOf(own) }
+        val vm=createViewModel(repo,accounts=accounts)
+        assertEquals(250L,vm.state.value.overview?.totalMl)
+        accounts.owner.value="B"
+        val foreign=own.copy(id=2,amountMl=999,ownerId="B")
+        repo.entries.value=listOf(foreign)
+        vm.add(DrinkType.TEA,150)
+        runCurrent()
+        assertEquals(listOf(foreign),repo.entries.value)
+        assertEquals(250L,vm.state.value.overview?.totalMl)
+        // Even a late B emission after switching back cannot enter A's retained state.
+        accounts.owner.value="A"
+        repo.entries.value=listOf(foreign.copy(amountMl=1000))
+        runCurrent()
+        assertEquals(250L,vm.state.value.overview?.totalMl)
     }
 }

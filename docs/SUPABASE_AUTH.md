@@ -1,12 +1,12 @@
 # Supabase authentication
 
-Email/password sign-in, signup, password recovery and Google browser OAuth use the Auth module of supabase-kt 3.6.0 with Ktor OkHttp 3.4.3. Kotlin Compose compiler is aligned to 2.3.21, the SDK build version. No Postgrest tables or cloud hydration sync are introduced.
+Email/password sign-in, signup, password recovery and Google browser OAuth use the Auth module of supabase-kt 3.6.0 with Ktor OkHttp 3.4.3. Kotlin Compose compiler is aligned to 2.3.21, the SDK build version. Postgrest-backed history sync is documented in [HYDRATION_SYNC.md](HYDRATION_SYNC.md).
 
 ## Local setup
 
 Copy `supabase.properties.example` to `supabase.properties` and enter your project URL and publishable key. This file is ignored by Git. Gradle properties or environment variables with the same names can supply CI values. Only public publishable/anon keys are accepted; never embed service_role or secret keys. The public key is necessarily present in the compiled Android client.
 
-Without configuration the diary works offline and the account action is disabled. With configuration, open Settings > Account to sign in. Account state does not gate local Room access. All accounts/guests on the same device currently share the same local diary; login is not backup or cross-device sync. Signing out does not delete hydration data.
+Without configuration the diary works offline and the account action is disabled. With configuration, open Settings > Account to sign in. Account state does not gate local Room access. Every account has a separate cached diary and syncs its own history. Guests have a separate local diary with an explicit import action after login. Signing out does not delete hydration data.
 
 ## Supabase Dashboard
 
