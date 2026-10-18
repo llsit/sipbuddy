@@ -61,7 +61,7 @@ internal fun TodayScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("ค่อย ๆ จิบ ก็ถึงเป้าได้", fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
+                Text("ค่อย ๆ จิบ ก็ถึงเป้าได้", fontWeight = FontWeight.Bold, fontSize = 20.sp)
                 Text(
                     overview.dateContext.date.format(HydrationFormatters.fullDate),
                     fontSize = 13.sp
@@ -69,7 +69,7 @@ internal fun TodayScreen(
                 WaterMascot(overview.progress, Modifier.size(230.dp), waveEnabled)
                 Text(
                     if (overview.progress >= 1f) "เย้! วันนี้ถึงเป้าแล้ว ♡" else "เติมความสดชื่นให้บัดดี้กัน",
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Normal
                 )
             }
         }
