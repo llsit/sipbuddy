@@ -10,10 +10,13 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import java.util.UUID
 class DefaultHydrationSyncRepository(private val database: HydrationDatabase,private val accounts: AccountRepository,
-    private val scheduler: SyncRequestScheduler,private val runtime: SyncRuntimeState) : HydrationSyncRepository {
+    private val scheduler: SyncRequestScheduler,private val runtime: SyncRuntimeState,
+    private val settingsSync: com.llsit.sipduddy.domain.repository.LocalSettingsSyncRepository) : HydrationSyncRepository {
     @OptIn(ExperimentalCoroutinesApi::class)
     override val status = accounts.owner.filterNotNull().flatMapLatest { owner ->
-        combine(database.sync().observePendingCount(owner),database.sync().observeGuestCount(),
+        combine(combine(database.sync().observePendingCount(owner),settingsSync.observeRecord(owner)) { count, settings ->
+                count + if (settings.pending) 1 else 0
+            },database.sync().observeGuestCount(),
             database.sync().observeMetadata(owner),runtime.running) { pending,guests,metadata,running ->
             SyncStatus(owner,if (owner.isEmpty()) 0 else pending,guests,owner in running,
                 metadata?.lastSuccessAt,metadata?.error,metadata?.conflicts ?: 0)

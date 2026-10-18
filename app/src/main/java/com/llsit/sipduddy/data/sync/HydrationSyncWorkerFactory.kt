@@ -8,6 +8,6 @@ class HydrationSyncWorkerFactory : WorkerFactory() {
     override fun createWorker(appContext: Context,workerClassName: String,workerParameters: WorkerParameters): ListenableWorker? {
         if (workerClassName != HydrationSyncWorker::class.java.name) return null
         val koin=GlobalContext.get()
-        return HydrationSyncWorker(appContext,workerParameters,koin.get(),koin.get(),koin.get(),koin.get(),koin.get())
+        return HydrationSyncWorker(appContext,workerParameters,koin.get(),koin.get(),koin.get(),koin.get(),koin.get(),koin.get())
     }
 }

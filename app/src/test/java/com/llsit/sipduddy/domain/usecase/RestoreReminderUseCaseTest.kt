@@ -20,4 +20,13 @@ class RestoreReminderUseCaseTest {
         assertEquals(repository.settings.value.reminder, reminder)
         assertEquals(listOf(reminder), scheduler.scheduled)
     }
+
+    @Test fun doesNotRestorePreviousAccountReminder() = runBlocking {
+        val repository = FakeHydrationSettingsRepository()
+        repository.settings.value = HydrationSettings(reminder = ReminderSettings(true, ReminderTime(15, 45)), ownerId = "A")
+        val scheduler = FakeReminderScheduler()
+        val result = RestoreReminderUseCase(repository, scheduler, com.llsit.sipduddy.fake.FakeAccountRepository("B"))()
+        org.junit.Assert.assertFalse(result.enabled)
+        org.junit.Assert.assertTrue(scheduler.scheduled.isEmpty())
+    }
 }

@@ -20,12 +20,12 @@ val domainModule = module {
     factory { DeleteDrinkUseCase(get()) }
     factory { EditDrinkUseCase(get()) }
     factory { RestoreDrinkUseCase(get()) }
-    factory { ShouldSendReminderUseCase(get(), get(), get()) }
+    factory { ShouldSendReminderUseCase(get(), get(), get(), accounts = get()) }
     factory { CalculateNextScheduledReminderUseCase() }
-    factory { SaveHydrationSettingsUseCase(get(), get()) }
+    factory { SaveHydrationSettingsUseCase(get(), get(), get()) }
     factory { CalculateWeeklyHydrationUseCase() }
     factory { CalculateNextReminderUseCase() }
     factory { ObserveHydrationOverviewUseCase(get(), get(), get(), get(), Dispatchers.Default) }
-    factory { RestoreReminderUseCase(get(), get()) }
+    factory { RestoreReminderUseCase(get(), get(), get()) }
     factory { HandleReminderUseCase(get(), get(), get()) }
 }

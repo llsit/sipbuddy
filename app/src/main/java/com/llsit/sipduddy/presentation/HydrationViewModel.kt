@@ -57,7 +57,7 @@ class HydrationViewModel(
     private val overview = retryVersion.flatMapLatest {
         observeHydrationOverviewUseCase()
             .filter { overview -> isCurrentAccount() && (boundOwner == null ||
-                overview.days.all { day -> day.entries.all { entry -> entry.ownerId == boundOwner } }) }
+                overview.settings.ownerId == boundOwner && overview.days.all { day -> day.entries.all { entry -> entry.ownerId == boundOwner } }) }
             .map<_, OverviewLoadState> { OverviewLoadState.Loaded(it) }
             .catch { exception ->
                 if (exception is CancellationException) throw exception
@@ -151,7 +151,7 @@ class HydrationViewModel(
     }
 
     fun save(settings: HydrationSettings) = launchAction {
-        val result = saveHydrationSettingsUseCase(settings)
+        val result = saveHydrationSettingsUseCase(settings, boundOwner)
         showMessage(
             if (result == SaveHydrationSettingsResult.SAVED) "บันทึกการตั้งค่าแล้ว"
             else "บันทึกการตั้งค่าแล้ว แต่ตั้งเวลาเตือนไม่สำเร็จ กรุณาลองบันทึกอีกครั้ง"

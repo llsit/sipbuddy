@@ -65,3 +65,5 @@ The cream and blue palette and original Canvas mascot remain. Screens use a cent
 Optional Supabase email/password and Google sign-in are available from Settings. See [Supabase authentication setup](docs/SUPABASE_AUTH.md) for local configuration, Dashboard redirect/provider setup, session handling and testing. Hydration history is isolated by account and syncs through a durable Room outbox. Guests keep separate local history and can explicitly move it into the signed-in account. See [offline sync design and setup](docs/HYDRATION_SYNC.md).
 
 Instrumented tests target the separate debuggable `com.llsit.sipduddy.qa` package (`connectedQaAndroidTest`) so automatic test cleanup cannot uninstall the regular diary app. Never change testBuildType to debug on a device containing personal records.
+
+Account goal/reminder sync: see [docs/SETTINGS_SYNC.md](docs/SETTINGS_SYNC.md) for migration 003, conflict behavior and verification.

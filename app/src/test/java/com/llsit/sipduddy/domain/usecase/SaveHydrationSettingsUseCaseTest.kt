@@ -77,4 +77,15 @@ class SaveHydrationSettingsUseCaseTest {
         assertThrows(IllegalArgumentException::class.java) { ReminderTime(24, 0) }
         assertThrows(IllegalArgumentException::class.java) { ReminderTime(10, 60) }
     }
+
+    @Test fun accountSwitchAfterPersistenceCannotScheduleOldAccountAlarm() = runBlocking {
+        val accounts = com.llsit.sipduddy.fake.FakeAccountRepository("A")
+        val repository = object : com.llsit.sipduddy.domain.repository.HydrationSettingsRepository {
+            override val settings = kotlinx.coroutines.flow.flowOf(HydrationSettings())
+            override suspend fun save(settings: HydrationSettings) { accounts.owner.value = "B" }
+        }
+        val scheduler = FakeReminderScheduler()
+        SaveHydrationSettingsUseCase(repository, scheduler, accounts)(HydrationSettings(3000), "A")
+        assertTrue(scheduler.scheduled.isEmpty())
+    }
 }

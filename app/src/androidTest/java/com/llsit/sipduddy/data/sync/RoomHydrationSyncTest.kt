@@ -79,7 +79,11 @@ class RoomHydrationSyncTest {
     }
     @Test fun guestImportRequiresCurrentAccountAndMovesOnlyGuestRecords()=runBlocking {
         val guest=insert("");insert("B")
-        val repository=DefaultHydrationSyncRepository(db,accounts,scheduler,SyncRuntimeState())
+        val repository=DefaultHydrationSyncRepository(db,accounts,scheduler,SyncRuntimeState(),
+            com.llsit.sipduddy.data.repository.DataStoreHydrationSettingsRepository(
+                androidx.datastore.preferences.core.PreferenceDataStoreFactory.create { java.io.File(
+                    InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, "sync-test-${UUID.randomUUID()}.preferences_pb") },
+                com.llsit.sipduddy.data.mapper.HydrationSettingsMapper(),accounts))
         try { repository.importGuestHistory("B");fail() } catch(_: IllegalArgumentException) { }
         assertEquals(1,repository.importGuestHistory("A"))
         assertTrue(db.drinks().observeEntries(0,200,"").first().isEmpty())

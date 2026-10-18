@@ -6,4 +6,5 @@ import kotlinx.coroutines.flow.Flow
 interface HydrationSettingsRepository {
     val settings: Flow<HydrationSettings>
     suspend fun save(settings: HydrationSettings)
+    suspend fun saveForOwner(settings: HydrationSettings, expectedOwner: String?) = save(settings)
 }

@@ -28,7 +28,9 @@ val dataModule = module {
     factory { DrinkEntryMapper() }
     factory { HydrationSettingsMapper() }
     single<DrinkRepository> { RoomDrinkRepository(get(), get(), get()) }
-    single<HydrationSettingsRepository> { DataStoreHydrationSettingsRepository(get(), get()) }
+    single { DataStoreHydrationSettingsRepository(get(), get(), get(), get()) }
+    single<HydrationSettingsRepository> { get<DataStoreHydrationSettingsRepository>() }
+    single<com.llsit.sipduddy.domain.repository.LocalSettingsSyncRepository> { get<DataStoreHydrationSettingsRepository>() }
     single<DateProvider> { SystemDateProvider(get()) }
     single<ReminderScheduler> { AndroidReminderScheduler(androidContext(), get(), get()) }
     single<ReminderNotificationPublisher> { AndroidReminderNotificationPublisher(androidContext()) }

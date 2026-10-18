@@ -19,15 +19,18 @@ val syncModule = module {
     single<AccountRepository> { ActiveAccountRepository(get(),get()) }
     single<SyncRequestScheduler> { HydrationSyncScheduler(androidContext()) }
     single { SyncRuntimeState() }
+    factory { com.llsit.sipduddy.data.mapper.SettingsSyncRecordMapper() }
+    single<RemoteSettingsSyncRepository> { SupabaseSettingsSyncRepository(get(),get()) }
+    factory { SyncHydrationSettingsUseCase(get(),get(),get()) }
     factory { RemoteDrinkMapper() }
     factory { SyncRecordMapper() }
     single<LocalHydrationSyncRepository> { RoomHydrationSyncRepository(get(),get()) }
     single<RemoteHydrationSyncRepository> { SupabaseHydrationSyncRepository(get(),get()) }
-    single<HydrationSyncRepository> { DefaultHydrationSyncRepository(get(),get(),get(),get()) }
+    single<HydrationSyncRepository> { DefaultHydrationSyncRepository(get(),get(),get(),get(),get()) }
     factory { SyncHydrationUseCase(get(),get(),get()) }
     factory { ObserveSyncStatusUseCase(get()) }
     factory { RequestHydrationSyncUseCase(get()) }
     factory { ImportGuestHistoryUseCase(get()) }
-    single { HydrationSyncCoordinator(get(),get(),get(),get(),get()) }
+    single { HydrationSyncCoordinator(get(),get(),get(),get(),get(),get()) }
     viewModel { parameters -> SyncViewModel(get(),get(),get(),parameters.getOrNull<String>()) }
 }

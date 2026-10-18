@@ -61,6 +61,7 @@ class HydrationViewModelTest {
         collectState: Boolean = true,
         accounts: com.llsit.sipduddy.domain.repository.AccountRepository? = null,
     ): HydrationViewModel {
+        if (accounts != null) settings.settings.value = settings.settings.value.copy(ownerId = accounts.owner.value)
         val observe = ObserveHydrationOverviewUseCase(
             drinks,
             settings,

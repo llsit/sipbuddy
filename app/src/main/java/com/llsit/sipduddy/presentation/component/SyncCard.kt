@@ -12,21 +12,21 @@ internal fun SyncCard(state: SyncUiState,onSync: () -> Unit,onImport: (String) -
     val status=state.status
     var confirmOwner by rememberSaveable { mutableStateOf<String?>(null) }
     SoftCard {
-        Text("ประวัติและการซิงก์",style=MaterialTheme.typography.titleMedium)
-        if (status.ownerId.isEmpty()) Text("ประวัติผู้เยี่ยมชมเก็บเฉพาะในเครื่อง เข้าสู่ระบบเพื่อซิงก์ประวัติของบัญชี")
+        Text("ข้อมูลและการซิงก์",style=MaterialTheme.typography.titleMedium)
+        if (status.ownerId.isEmpty()) Text("ประวัติและการตั้งค่าผู้เยี่ยมชมเก็บเฉพาะในเครื่อง เข้าสู่ระบบเพื่อซิงก์ข้อมูลของบัญชี")
         else {
             Text(when {
-                status.isRunning -> "กำลังซิงก์ประวัติ…"
+                status.isRunning -> "กำลังซิงก์ข้อมูล…"
                 status.pending > 0 -> "มี ${status.pending} รายการรอซิงก์ ใช้งานออฟไลน์ต่อได้"
-                status.lastSuccessAt != null -> "ประวัติซิงก์แล้ว"
-                else -> "เตรียมซิงก์ประวัติ"
+                status.lastSuccessAt != null -> "ประวัติและการตั้งค่าซิงก์แล้ว"
+                else -> "เตรียมซิงก์ประวัติและการตั้งค่า"
             })
             status.lastSuccessAt?.let { time ->
                 val formatted=DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(time))
                 Text("ซิงก์ล่าสุด $formatted",style=MaterialTheme.typography.bodySmall)
             }
             status.error?.let { Text(it,color=MaterialTheme.colorScheme.error) }
-            if (status.conflicts > 0) Text("บางรายการเปลี่ยนจากอีกเครื่อง ระบบใช้เวอร์ชันบนบัญชีเพื่อป้องกันข้อมูลทับกัน",style=MaterialTheme.typography.bodySmall)
+            if (status.conflicts > 0) Text("บางรายการหรือการตั้งค่าเปลี่ยนจากอีกเครื่อง ระบบใช้เวอร์ชันบนบัญชีเพื่อป้องกันข้อมูลทับกัน",style=MaterialTheme.typography.bodySmall)
             OutlinedButton(onClick=onSync,enabled=!status.isRunning) { Text("ซิงก์ตอนนี้") }
             if (status.guestCount > 0) TextButton(onClick={ confirmOwner=status.ownerId },enabled=!state.importing) {
                 Text("ย้ายประวัติผู้เยี่ยมชม ${status.guestCount} รายการเข้าบัญชีนี้")
