@@ -49,7 +49,8 @@ internal fun SettingsScreen(
     settings: HydrationSettings,
     busy: Boolean,
     modifier: Modifier = Modifier,
-    onSave: (HydrationSettings) -> Unit
+    onSave: (HydrationSettings) -> Unit,
+    accountContent: @Composable () -> Unit = {}
 ) {
     val prefs = settings
     var goal by rememberSaveable(prefs.goalMl) { mutableStateOf(prefs.goalMl.toString()) }
@@ -79,6 +80,7 @@ internal fun SettingsScreen(
         modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        accountContent()
         Text("ดูแลตัวเองในแบบคุณ", fontSize = 25.sp, fontWeight = FontWeight.Bold)
         SoftCard {
             Text("เป้าหมายรายวัน", fontWeight = FontWeight.Bold, fontSize = 18.sp)

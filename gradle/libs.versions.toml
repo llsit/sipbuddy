@@ -6,7 +6,7 @@ junitVersion = "1.3.0"
 espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.11.0"
 activityCompose = "1.13.0"
-kotlin = "2.2.10"
+kotlin = "2.3.21"
 composeBom = "2026.04.01"
 ksp = "2.3.6"
 room = "2.8.4"
@@ -14,7 +14,12 @@ datastore = "1.2.1"
 koin = "4.2.1"
 coroutines = "1.11.0"
 
+supabase = "3.6.0"
+ktor = "3.4.3"
+
 [libraries]
+supabase-auth = { module = "io.github.jan-tennert.supabase:auth-kt", version.ref = "supabase" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }

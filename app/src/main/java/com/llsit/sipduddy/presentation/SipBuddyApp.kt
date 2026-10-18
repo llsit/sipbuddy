@@ -62,7 +62,7 @@ import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel()) {
+fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel(), accountContent: @Composable () -> Unit = {}) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var destination by rememberSaveable { mutableStateOf(AppDestination.TODAY) }
     val focusManager = LocalFocusManager.current
@@ -159,7 +159,8 @@ fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel()) {
                             overview.settings,
                             state.isSaving,
                             Modifier.fillMaxSize(),
-                            viewModel::save
+                            viewModel::save,
+                            accountContent = accountContent
                         )
                     }
                     }

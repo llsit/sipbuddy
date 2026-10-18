@@ -1,18 +1,18 @@
 # SipBuddy
 
-Native Android hydration diary. Kotlin, Jetpack Compose Material 3, MVVM, StateFlow, Koin, Room and Preferences DataStore. Android 9+ (API 28). No account or internet permission.
+Native Android hydration diary. Kotlin, Jetpack Compose Material 3, MVVM, StateFlow, Koin, Room and Preferences DataStore. Android 9+ (API 28). Offline diary with optional Supabase email/password and Google authentication. Internet is needed only for account actions.
 
 ## Structure
 
 - `domain/model/`: one named model per file, including `DrinkType`, `DrinkEntry`, `HydrationSettings`, `ReminderSettings`, `ReminderTime` and `HydrationOverview`.
-- `domain/repository/`: separate `DrinkRepository` and `HydrationSettingsRepository` contracts.
+- `domain/repository/`: separate `DrinkRepository`, `HydrationSettingsRepository` and `AuthRepository` contracts.
 - `domain/usecase/`: one operation per `…UseCase.kt`, including adding/deleting drinks, observing the overview, calculating weekly totals/next reminder, saving settings and restoring/handling reminders.
 - `domain/time/` and `domain/reminder/`: small contracts for date changes and platform reminder adapters.
 - `data/local/`: separate Room entity, DAO, database and DataStore keys/provider.
 - `data/repository/`: `RoomDrinkRepository` and `DataStoreHydrationSettingsRepository` implement the independent contracts.
 - `data/mapper/`, `data/time/`, `data/reminder/`: storage mapping, date observation, alarm scheduling, notification publishing and receiver, each in a separate file.
 - `presentation/model/`, `screen/`, `component/`, `mapper/`, `formatter/`, `notification/`: UI state, individual screens/components, display text/date formatting and Android permission handling.
-- `di/`: separate data/domain/presentation Koin modules, composed by `AppModule.kt`.
+- `di/`: separate data/domain/presentation/auth Koin modules, composed by `AppModule.kt`.
 
 Dependency direction: presentation → domain ← data. DI connects implementations to domain contracts. Layers are packages within the app module for this MVP.
 
@@ -32,9 +32,9 @@ Settings use DataStore. Reminders support 1–12 distinct local times (default 1
 
 ## Verify
 
-`gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug`
+`gradlew.bat :app:assembleDebug :app:testQaUnitTest :app:lintDebug`
 
-`gradlew.bat :app:connectedDebugAndroidTest --no-configuration-cache` runs the Room in-memory DAO tests on a connected device/emulator. Unit tests under `app/src/test/` cover use cases, mappers, repository adapters and ViewModel concurrency/retry/error handling. Tests include edit/Undo identity and retry, concurrent writes, multi-slot scheduling, DST, quiet boundaries, goal suppression, next-day resume and legacy preference migration. Room SQL and actual alarm delivery require a device/emulator.
+`gradlew.bat :app:connectedQaAndroidTest --no-configuration-cache` runs the Room in-memory DAO tests on a connected device/emulator. Unit tests under `app/src/test/` cover use cases, mappers, repository adapters and ViewModel concurrency/retry/error handling. Tests include edit/Undo identity and retry, concurrent writes, multi-slot scheduling, DST, quiet boundaries, goal suppression, next-day resume and legacy preference migration. Room SQL and actual alarm delivery require a device/emulator.
 
 Device checks: add each beverage, relaunch for persistence, delete a record, change goal, midnight rollover, grant/deny notifications, set reminder a few minutes ahead, reboot and verify rescheduling, large fonts and small screens.
 
@@ -59,3 +59,9 @@ Sources: [Android dumpsys](https://developer.android.com/tools/dumpsys), [Androi
 ## Material 3 UI
 
 The cream and blue palette and original Canvas mascot remain. Screens use a centered Material 3 top app bar, icon navigation, themed cards and an extended floating action button for recording drinks. Bottom list padding keeps records accessible above the action button.
+
+## Account login
+
+Optional Supabase email/password and Google sign-in are available from Settings. See [Supabase authentication setup](docs/SUPABASE_AUTH.md) for local configuration, Dashboard redirect/provider setup, session handling and testing. Hydration records remain device-local and shared across guests/accounts on that device; authentication does not sync or back up Room data.
+
+Instrumented tests target the separate debuggable `com.llsit.sipduddy.qa` package (`connectedQaAndroidTest`) so automatic test cleanup cannot uninstall the regular diary app. Never change testBuildType to debug on a device containing personal records.

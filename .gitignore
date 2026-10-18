@@ -42,3 +42,6 @@ google-services.json
 
 # Local Python benchmark caches
 __pycache__/
+
+# Local Supabase client configuration
+supabase.properties
