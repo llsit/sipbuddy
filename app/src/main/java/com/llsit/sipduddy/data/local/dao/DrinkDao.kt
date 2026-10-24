@@ -1,8 +1,13 @@
 package com.llsit.sipduddy.data.local.dao
-import androidx.room.*
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.Query
+import androidx.room.Transaction
+import androidx.room.Update
 import com.llsit.sipduddy.data.local.entity.DrinkEntity
-import java.util.UUID
 import kotlinx.coroutines.flow.Flow
+import java.util.UUID
 
 @Dao
 interface DrinkDao {
@@ -18,9 +23,11 @@ interface DrinkDao {
     @Query("SELECT * FROM drinks WHERE id=:id AND ownerId=:owner")
     suspend fun getStored(id: Long, owner: String): DrinkEntity?
 
-    @Insert suspend fun insert(entry: DrinkEntity)
+    @Insert
+    suspend fun insert(entry: DrinkEntity)
 
-    @Update suspend fun update(entry: DrinkEntity): Int
+    @Update
+    suspend fun update(entry: DrinkEntity): Int
 
     @Query("UPDATE drinks SET deleted=1,pending=1,allowRestore=0,localVersion=localVersion+1,operationId=:operation WHERE id=:id AND ownerId=:owner AND deleted=0")
     suspend fun markDeleted(id: Long, owner: String, operation: String)

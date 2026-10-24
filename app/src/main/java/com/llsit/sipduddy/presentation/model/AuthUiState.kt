@@ -1,5 +1,7 @@
 package com.llsit.sipduddy.presentation.model
+
 import com.llsit.sipduddy.domain.model.AuthSession
+
 data class AuthUiState(
     val session: AuthSession = AuthSession.Loading,
     val isConfigured: Boolean = false,

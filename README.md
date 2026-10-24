@@ -1,6 +1,6 @@
 # SipBuddy
 
-Native Android hydration diary. Kotlin, Jetpack Compose Material 3, MVVM, StateFlow, Koin, Room and Preferences DataStore. Android 9+ (API 28). Offline diary with optional Supabase email/password and Google authentication. Signed-in history syncs to Supabase; guest history and all local recording remain available offline.
+Native Android hydration diary. Kotlin, Jetpack Compose Material 3, MVI, StateFlow, Koin, Room and Preferences DataStore. Android 9+ (API 28). Offline diary with optional Supabase email/password and Google authentication. Signed-in history syncs to Supabase; guest history and all local recording remain available offline.
 
 ## Structure
 
@@ -79,3 +79,5 @@ After adding or editing Kotlin/Gradle Kotlin code, run:
 `formatKotlin` reformats source files, removes unused imports and orders imports. `checkKotlinFormat` validates the same rules without changing files. The pinned ktlint tool is a development dependency only; it is not bundled in the Android app. Shared style is in `.editorconfig`. Existing wildcard imports remain supported; extension and Compose delegate imports must remain when needed.
 
 Use Android Studio Reformat Code for Android XML. Generated build/cache folders and private configuration are excluded from formatting. `AGENTS.md` and `.cursor/rules/format-and-imports.mdc` require formatting and import cleanup after every agent code change.
+
+MVI presentation flow and migration details: [docs/MVI.md](docs/MVI.md).

@@ -1,4 +1,5 @@
 package com.llsit.sipduddy.data.auth
+
 import android.content.Intent
 import com.llsit.sipduddy.BuildConfig
 import io.github.jan.supabase.auth.handleDeeplinks

@@ -1,15 +1,16 @@
 package com.llsit.sipduddy.presentation
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.llsit.sipduddy.domain.model.AuthSession
 import com.llsit.sipduddy.domain.usecase.*
 import com.llsit.sipduddy.presentation.formatter.AuthErrorFormatter
-import com.llsit.sipduddy.presentation.model.AuthMode
-import com.llsit.sipduddy.presentation.model.AuthUiState
+import com.llsit.sipduddy.presentation.intent.AuthIntent
+import com.llsit.sipduddy.presentation.model.*
+import com.llsit.sipduddy.presentation.mutation.AuthMutation
+import com.llsit.sipduddy.presentation.reducer.AuthReducer
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class AuthViewModel(
@@ -22,78 +23,81 @@ class AuthViewModel(
     private val updatePasswordUseCase: UpdatePasswordUseCase,
     private val errorFormatter: AuthErrorFormatter,
 ) : ViewModel() {
+    private val reducer = AuthReducer()
     private val mutableState = MutableStateFlow(AuthUiState(isConfigured = observeSession.isConfigured))
     val state = mutableState.asStateFlow()
+    private fun reduce(mutation: AuthMutation) {
+        mutableState.update { reducer.reduce(it, mutation) }
+    }
+
     init {
         viewModelScope.launch {
             observeSession.callbackError().collect { error ->
                 if (error != null) {
-                    mutableState.update { it.copy(error = error, showForm = true) }
+                    reduce(AuthMutation.Failed(error, openForm = true))
                     observeSession.clearCallbackError()
                 }
             }
         }
+        viewModelScope.launch { observeSession().collect { reduce(AuthMutation.SessionChanged(it)) } }
         viewModelScope.launch {
-            observeSession().collect { session ->
-                mutableState.update {
-                    it.copy(session = session, showForm = if (session is AuthSession.SignedIn && it.mode != AuthMode.UPDATE_PASSWORD) false else it.showForm)
+            observeSession.recoveryRequired().collect { if (it) reduce(AuthMutation.RecoveryRequired) }
+        }
+    }
+
+    fun onIntent(intent: AuthIntent) {
+        when (intent) {
+            AuthIntent.Open -> reduce(AuthMutation.Opened)
+
+            AuthIntent.Close -> reduce(AuthMutation.Closed)
+
+            is AuthIntent.ChangeMode -> reduce(AuthMutation.ModeChanged(intent.mode))
+
+            is AuthIntent.Submit -> {
+                val mode = state.value.mode
+                perform {
+                    when (mode) {
+                        AuthMode.SIGN_IN -> signInUseCase(intent.email, intent.password)
+
+                        AuthMode.SIGN_UP -> {
+                            val active = signUpUseCase(intent.email, intent.password)
+                            reduce(AuthMutation.MessageShown(if (active) "สมัครสมาชิกแล้ว" else "หากอีเมลนี้สมัครได้ ระบบจะส่งอีเมลยืนยัน กรุณาตรวจกล่องจดหมายและสแปม"))
+                        }
+
+                        AuthMode.RESET -> {
+                            sendPasswordResetUseCase(intent.email)
+                            reduce(AuthMutation.MessageShown("หากอีเมลนี้มีบัญชีอยู่ ระบบจะส่งลิงก์รีเซ็ตรหัสผ่าน กรุณาเปิดบนเครื่องนี้"))
+                        }
+
+                        AuthMode.UPDATE_PASSWORD -> {
+                            updatePasswordUseCase(intent.password)
+                            reduce(AuthMutation.PasswordUpdated)
+                        }
+                    }
                 }
             }
-        }
-        viewModelScope.launch {
-            observeSession.recoveryRequired().collect { required ->
-                if (required) mutableState.update { it.copy(mode = AuthMode.UPDATE_PASSWORD, showForm = true, error = null, message = null) }
-            }
-        }
-    }
-    fun open() {
-        mutableState.update { it.copy(showForm = true, error = null, message = null) }
-    }
-    fun close() {
-        if (!state.value.isBusy) mutableState.update { it.copy(showForm = false) }
-    }
-    fun mode(mode: AuthMode) {
-        if (!state.value.isBusy && state.value.mode != AuthMode.UPDATE_PASSWORD && mode != AuthMode.UPDATE_PASSWORD) {
-            mutableState.update { it.copy(mode = mode, error = null, message = null) }
-        }
-    }
-    fun submit(email: String, password: String) = perform {
-        when (state.value.mode) {
-            AuthMode.SIGN_IN -> signInUseCase(email, password)
 
-            AuthMode.SIGN_UP -> {
-                val active = signUpUseCase(email, password)
-                mutableState.update { it.copy(message = if (active) "สมัครสมาชิกแล้ว" else "หากอีเมลนี้สมัครได้ ระบบจะส่งอีเมลยืนยัน กรุณาตรวจกล่องจดหมายและสแปม") }
-            }
+            AuthIntent.GoogleSignIn -> perform { signInWithGoogleUseCase() }
 
-            AuthMode.RESET -> {
-                sendPasswordResetUseCase(email)
-                mutableState.update { it.copy(message = "หากอีเมลนี้มีบัญชีอยู่ ระบบจะส่งลิงก์รีเซ็ตรหัสผ่าน กรุณาเปิดบนเครื่องนี้") }
-            }
-
-            AuthMode.UPDATE_PASSWORD -> {
-                updatePasswordUseCase(password)
-                mutableState.update { it.copy(showForm = false, mode = AuthMode.SIGN_IN, message = "เปลี่ยนรหัสผ่านแล้ว") }
+            AuthIntent.SignOut -> perform {
+                signOutUseCase()
+                reduce(AuthMutation.SignedOut)
             }
         }
     }
-    fun google() = perform { signInWithGoogleUseCase() }
-    fun signOut() = perform {
-        signOutUseCase()
-        mutableState.update { it.copy(mode = AuthMode.SIGN_IN, message = "ออกจากระบบแล้ว ข้อมูลการดื่มยังอยู่ในเครื่อง") }
-    }
+
     private fun perform(action: suspend () -> Unit) {
         if (state.value.isBusy || !state.value.isConfigured || state.value.session == AuthSession.Loading) return
-        mutableState.update { it.copy(isBusy = true, error = null, message = null) }
+        reduce(AuthMutation.Started)
         viewModelScope.launch {
             try {
                 action()
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                mutableState.update { it.copy(error = errorFormatter.format(error)) }
+                reduce(AuthMutation.Failed(errorFormatter.format(error)))
             } finally {
-                mutableState.update { it.copy(isBusy = false) }
+                reduce(AuthMutation.Finished)
             }
         }
     }

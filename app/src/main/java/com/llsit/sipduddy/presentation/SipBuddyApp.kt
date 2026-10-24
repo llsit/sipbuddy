@@ -28,12 +28,9 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
@@ -42,47 +39,64 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.llsit.sipduddy.R
 import com.llsit.sipduddy.presentation.animation.SipBuddyMotion
 import com.llsit.sipduddy.presentation.component.AppHeader
 import com.llsit.sipduddy.presentation.component.DeleteDrinkDialog
+import com.llsit.sipduddy.presentation.effect.HydrationEffect
+import com.llsit.sipduddy.presentation.intent.HydrationIntent
 import com.llsit.sipduddy.presentation.model.AppDestination
 import com.llsit.sipduddy.presentation.screen.AddDrinkSheet
 import com.llsit.sipduddy.presentation.screen.HistoryScreen
 import com.llsit.sipduddy.presentation.screen.SettingsScreen
 import com.llsit.sipduddy.presentation.screen.TodayScreen
 import com.llsit.sipduddy.ui.theme.Cream
+import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel(), accountContent: @Composable () -> Unit = {}) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var destination by rememberSaveable { mutableStateOf(AppDestination.TODAY) }
+    val destination = state.destination
     val focusManager = LocalFocusManager.current
     val screenStateHolder = rememberSaveableStateHolder()
-    var deletingId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val deletingId = state.deletingId
     val snackbar = remember { SnackbarHostState() }
     val overview = state.overview
     val loadError = state.loadError
-    val message = state.message
     val deleting = remember(overview, deletingId) {
         overview?.days?.asSequence()?.flatMap { it.entries.asSequence() }
             ?.firstOrNull { it.id == deletingId }
     }
-    LaunchedEffect(message?.id) {
-        message?.let {
-            val result = snackbar.showSnackbar(
-                it.text,
-                actionLabel = if (it.undoEntry != null) "เลิกทำ" else null,
-                withDismissAction = it.undoEntry != null,
-                duration = if (it.undoEntry != null) SnackbarDuration.Long else SnackbarDuration.Short,
-            )
-            if (result == SnackbarResult.ActionPerformed && it.undoEntry != null) {
-                viewModel.undoDelete(it.id)
-            } else {
-                viewModel.clearMessage(it.id)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(viewModel, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.effects.collectLatest { effect ->
+                when (effect) {
+                    HydrationEffect.DismissMessage -> snackbar.currentSnackbarData?.dismiss()
+
+                    is HydrationEffect.ShowMessage -> {
+                        val message = effect.message
+                        val result = snackbar.showSnackbar(
+                            message.text,
+                            actionLabel = if (message.undoEntry != null) "เลิกทำ" else null,
+                            withDismissAction = message.undoEntry != null,
+                            duration = if (message.undoEntry != null) SnackbarDuration.Long else SnackbarDuration.Short,
+                        )
+                        viewModel.onIntent(
+                            if (result == SnackbarResult.ActionPerformed && message.undoEntry != null) {
+                                HydrationIntent.UndoDelete(message.id)
+                            } else {
+                                HydrationIntent.MessageHandled(message.id)
+                            },
+                        )
+                    }
+                }
             }
         }
     }
@@ -91,7 +105,7 @@ fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel(), accountContent:
         floatingActionButton = @Composable {
             if (destination == AppDestination.TODAY && overview != null && loadError == null) {
                 ExtendedFloatingActionButton(
-                    onClick = { if (!state.isSaving) viewModel.showAddDrinkSheet() },
+                    onClick = { if (!state.isSaving) viewModel.onIntent(HydrationIntent.OpenAddDrink) },
                     modifier = Modifier.semantics {
                         contentDescription = "บันทึกเครื่องดื่ม"
                         if (state.isSaving) disabled()
@@ -109,7 +123,7 @@ fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel(), accountContent:
                         selected = destination == item,
                         onClick = {
                             focusManager.clearFocus()
-                            destination = item
+                            viewModel.onIntent(HydrationIntent.Navigate(item))
                         },
                         icon = @Composable { Icon(painterResource(item.iconRes), contentDescription = null) },
                         label = @Composable { Text(item.title) },
@@ -130,7 +144,7 @@ fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel(), accountContent:
 
                     loadError != null -> {
                         Text(loadError)
-                        TextButton(onClick = viewModel::retry) { Text("ลองใหม่") }
+                        TextButton(onClick = { viewModel.onIntent(HydrationIntent.Retry) }) { Text("ลองใหม่") }
                     }
 
                     overview != null -> AnimatedContent(
@@ -151,8 +165,8 @@ fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel(), accountContent:
                                     overview,
                                     state.isSaving,
                                     Modifier.fillMaxSize(),
-                                    onEdit = viewModel::showEditDrinkSheet,
-                                    onDelete = { deletingId = it.id },
+                                    onEdit = { viewModel.onIntent(HydrationIntent.OpenEditDrink(it)) },
+                                    onDelete = { viewModel.onIntent(HydrationIntent.RequestDelete(it.id)) },
                                     waveEnabled = destination == AppDestination.TODAY && !state.isAddSheetVisible && deletingId == null && !transitionRunning,
                                 )
 
@@ -160,14 +174,14 @@ fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel(), accountContent:
                                     overview,
                                     state.isSaving,
                                     Modifier.fillMaxSize(),
-                                    viewModel::showEditDrinkSheet,
-                                ) { deletingId = it.id }
+                                    { viewModel.onIntent(HydrationIntent.OpenEditDrink(it)) },
+                                ) { viewModel.onIntent(HydrationIntent.RequestDelete(it.id)) }
 
                                 AppDestination.SETTINGS -> SettingsScreen(
                                     overview.settings,
                                     state.isSaving,
                                     Modifier.fillMaxSize(),
-                                    viewModel::save,
+                                    { viewModel.onIntent(HydrationIntent.SaveSettings(it)) },
                                     accountContent = accountContent,
                                 )
                             }
@@ -184,11 +198,11 @@ fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel(), accountContent:
             confirmValueChange = { value -> !busy || value != SheetValue.Hidden },
         )
         ModalBottomSheet(
-            onDismissRequest = viewModel::dismissAddDrinkSheet,
+            onDismissRequest = { viewModel.onIntent(HydrationIntent.DismissDrinkEditor) },
             sheetState = sheetState,
             containerColor = Cream,
         ) {
-            AddDrinkSheet(state.isSaving, viewModel::saveDrink, state.editingEntry)
+            AddDrinkSheet(state.isSaving, { drink, amount -> viewModel.onIntent(HydrationIntent.SaveDrink(drink, amount)) }, state.editingEntry)
         }
     }
     deleting?.let { entry ->
@@ -196,10 +210,9 @@ fun SipBuddyApp(viewModel: HydrationViewModel = koinViewModel(), accountContent:
             entry,
             state.isSaving,
             onConfirm = {
-                viewModel.delete(entry.id)
-                deletingId = null
+                viewModel.onIntent(HydrationIntent.DeleteDrink(entry.id))
             },
-            onDismiss = { deletingId = null },
+            onDismiss = { viewModel.onIntent(HydrationIntent.DismissDelete) },
         )
     }
 }

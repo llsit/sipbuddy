@@ -1,7 +1,22 @@
 package com.llsit.sipduddy.data.mapper
 
-import com.llsit.sipduddy.domain.model.*
-import kotlinx.serialization.json.*
+import com.llsit.sipduddy.domain.model.HydrationSettings
+import com.llsit.sipduddy.domain.model.QuietHours
+import com.llsit.sipduddy.domain.model.ReminderSettings
+import com.llsit.sipduddy.domain.model.ReminderTime
+import com.llsit.sipduddy.domain.model.SettingsSyncRecord
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
+import kotlinx.serialization.json.put
 
 class SettingsSyncRecordMapper {
     fun encodeSettings(settings: HydrationSettings): JsonObject = buildJsonObject {
@@ -13,11 +28,13 @@ class SettingsSyncRecordMapper {
         put("quiet_end", settings.reminder.quietHours.end.let { it.hour * 60 + it.minute })
         put("stop_at_goal", settings.reminder.stopAtGoal)
     }
+
     fun decodeSettings(json: JsonObject): HydrationSettings {
         fun time(value: Int): ReminderTime {
             require(value in 0..1439)
             return ReminderTime(value / 60, value % 60)
         }
+
         val quiet = QuietHours(
             json.getValue("quiet_enabled").jsonPrimitive.boolean,
             time(json.getValue("quiet_start").jsonPrimitive.int),
@@ -33,6 +50,7 @@ class SettingsSyncRecordMapper {
             ),
         )
     }
+
     fun encode(record: SettingsSyncRecord): String = buildJsonObject {
         put("settings", encodeSettings(record.settings))
         put("version", record.serverVersion)
@@ -40,6 +58,7 @@ class SettingsSyncRecordMapper {
         put("operation", record.operationId)
         put("pending", record.pending)
     }.toString()
+
     fun decode(owner: String, value: String): SettingsSyncRecord {
         val json = Json.parseToJsonElement(value).jsonObject
         return SettingsSyncRecord(
@@ -51,6 +70,7 @@ class SettingsSyncRecordMapper {
             json.getValue("pending").jsonPrimitive.boolean,
         )
     }
+
     fun decodeRemote(json: JsonObject): SettingsSyncRecord {
         val owner = json.getValue("owner_id").jsonPrimitive.content
         java.util.UUID.fromString(owner)

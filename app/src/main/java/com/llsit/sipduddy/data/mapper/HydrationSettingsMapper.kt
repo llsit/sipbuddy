@@ -2,12 +2,12 @@ package com.llsit.sipduddy.data.mapper
 
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
-import com.llsit.sipduddy.data.local.preferences.HydrationPreferenceKeys as Keys
 import com.llsit.sipduddy.domain.model.HydrationSettings
 import com.llsit.sipduddy.domain.model.QuietHours
 import com.llsit.sipduddy.domain.model.ReminderSettings
 import com.llsit.sipduddy.domain.model.ReminderTime
 import java.time.LocalTime
+import com.llsit.sipduddy.data.local.preferences.HydrationPreferenceKeys as Keys
 
 class HydrationSettingsMapper {
     fun toDomain(preferences: Preferences): HydrationSettings {
@@ -30,10 +30,12 @@ class HydrationSettingsMapper {
         } else {
             ReminderSettings.DEFAULT_TIMES
         }
+
         fun readTime(key: Preferences.Key<Int>, fallback: ReminderTime): ReminderTime {
             val minutes = preferences[key]?.takeIf { it in 0..1439 } ?: return fallback
             return ReminderTime(minutes / 60, minutes % 60)
         }
+
         val quiet = QuietHours(
             preferences[Keys.quietEnabled] ?: true,
             readTime(Keys.quietStart, ReminderTime(22, 0)),
@@ -42,6 +44,7 @@ class HydrationSettingsMapper {
         val enabled = preferences[Keys.reminderEnabled] == true && times.any { !quiet.contains(LocalTime.of(it.hour, it.minute)) }
         return HydrationSettings(goal, ReminderSettings(enabled, times, quiet, preferences[Keys.stopAtGoal] ?: true))
     }
+
     fun write(settings: HydrationSettings, preferences: MutablePreferences) {
         val reminder = settings.reminder
         preferences[Keys.goal] = settings.goalMl

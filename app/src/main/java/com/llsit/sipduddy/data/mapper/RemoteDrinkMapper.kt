@@ -1,8 +1,16 @@
 package com.llsit.sipduddy.data.mapper
+
 import com.llsit.sipduddy.domain.model.DrinkType
 import com.llsit.sipduddy.domain.model.SyncRecord
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
+import kotlinx.serialization.json.put
 import java.util.UUID
-import kotlinx.serialization.json.*
+
 class RemoteDrinkMapper {
     fun decode(value: JsonObject): SyncRecord {
         fun text(key: String) = value.getValue(key).jsonPrimitive.content
@@ -26,6 +34,7 @@ class RemoteDrinkMapper {
             operation,
         )
     }
+
     fun encode(record: SyncRecord) = buildJsonObject {
         put("p_owner", record.ownerId)
         put("p_entry", record.remoteId)

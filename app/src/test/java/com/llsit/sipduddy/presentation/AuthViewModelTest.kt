@@ -5,6 +5,7 @@ import com.llsit.sipduddy.domain.model.AuthSession
 import com.llsit.sipduddy.domain.usecase.*
 import com.llsit.sipduddy.fake.FakeAuthRepository
 import com.llsit.sipduddy.presentation.formatter.AuthErrorFormatter
+import com.llsit.sipduddy.presentation.intent.AuthIntent
 import com.llsit.sipduddy.presentation.model.AuthMode
 import com.llsit.sipduddy.rule.MainDispatcherRule
 import kotlinx.coroutines.CancellationException
@@ -44,14 +45,14 @@ class AuthViewModelTest {
     @Test fun repeatedSubmitOnlyStartsOneRequest() = runTest {
         val vm = viewModel()
         runCurrent()
-        vm.open()
+        vm.onIntent(AuthIntent.Open)
         repository.gate = CompletableDeferred()
-        vm.submit("a@b.com", "password")
-        vm.submit("a@b.com", "password")
+        vm.onIntent(AuthIntent.Submit("a@b.com", "password"))
+        vm.onIntent(AuthIntent.Submit("a@b.com", "password"))
         runCurrent()
         assertEquals(1, repository.calls)
         assertTrue(vm.state.value.isBusy)
-        vm.mode(AuthMode.SIGN_UP)
+        vm.onIntent(AuthIntent.ChangeMode(AuthMode.SIGN_UP))
         assertEquals(AuthMode.SIGN_IN, vm.state.value.mode)
         repository.gate!!.complete(Unit)
         runCurrent()
@@ -63,9 +64,9 @@ class AuthViewModelTest {
     @Test fun signupWithoutSessionKeepsConfirmationMessageVisible() = runTest {
         val vm = viewModel()
         runCurrent()
-        vm.open()
-        vm.mode(AuthMode.SIGN_UP)
-        vm.submit("a@b.com", "password")
+        vm.onIntent(AuthIntent.Open)
+        vm.onIntent(AuthIntent.ChangeMode(AuthMode.SIGN_UP))
+        vm.onIntent(AuthIntent.Submit("a@b.com", "password"))
         runCurrent()
         assertTrue(vm.state.value.showForm)
         assertNotNull(vm.state.value.message)
@@ -75,14 +76,14 @@ class AuthViewModelTest {
     @Test fun failureKeepsFormAndAllowsRetry() = runTest {
         val vm = viewModel()
         runCurrent()
-        vm.open()
+        vm.onIntent(AuthIntent.Open)
         repository.failure = AuthException("ตรวจอินเทอร์เน็ต")
-        vm.submit("a@b.com", "password")
+        vm.onIntent(AuthIntent.Submit("a@b.com", "password"))
         runCurrent()
         assertEquals("ตรวจอินเทอร์เน็ต", vm.state.value.error)
         assertFalse(vm.state.value.isBusy)
         repository.failure = null
-        vm.submit("a@b.com", "password")
+        vm.onIntent(AuthIntent.Submit("a@b.com", "password"))
         runCurrent()
         assertNull(vm.state.value.error)
         assertFalse(vm.state.value.showForm)
@@ -91,8 +92,8 @@ class AuthViewModelTest {
     @Test fun googleLaunchDoesNotPretendUserIsAuthenticated() = runTest {
         val vm = viewModel()
         runCurrent()
-        vm.open()
-        vm.google()
+        vm.onIntent(AuthIntent.Open)
+        vm.onIntent(AuthIntent.GoogleSignIn)
         runCurrent()
         assertEquals(1, repository.googleCalls)
         assertEquals(AuthSession.SignedOut, vm.state.value.session)
@@ -107,7 +108,7 @@ class AuthViewModelTest {
         runCurrent()
         assertEquals(AuthMode.UPDATE_PASSWORD, vm.state.value.mode)
         assertTrue(vm.state.value.showForm)
-        vm.submit("", "new-password")
+        vm.onIntent(AuthIntent.Submit("", "new-password"))
         runCurrent()
         assertEquals(1, repository.passwordUpdates)
         assertFalse(vm.state.value.showForm)
@@ -127,8 +128,8 @@ class AuthViewModelTest {
         repository.isConfigured = false
         val vm = viewModel()
         runCurrent()
-        vm.google()
-        vm.submit("a@b.com", "password")
+        vm.onIntent(AuthIntent.GoogleSignIn)
+        vm.onIntent(AuthIntent.Submit("a@b.com", "password"))
         runCurrent()
         assertEquals(0, repository.calls)
         assertFalse(vm.state.value.isConfigured)
@@ -138,7 +139,7 @@ class AuthViewModelTest {
         val vm = viewModel()
         runCurrent()
         repository.failure = CancellationException("cancel")
-        vm.submit("a@b.com", "password")
+        vm.onIntent(AuthIntent.Submit("a@b.com", "password"))
         runCurrent()
         assertNull(vm.state.value.error)
         assertFalse(vm.state.value.isBusy)

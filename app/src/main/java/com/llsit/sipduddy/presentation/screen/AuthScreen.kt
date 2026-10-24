@@ -1,26 +1,40 @@
 package com.llsit.sipduddy.presentation.screen
-import androidx.compose.foundation.layout.*
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.llsit.sipduddy.presentation.intent.AuthIntent
 import com.llsit.sipduddy.presentation.model.AuthMode
 import com.llsit.sipduddy.presentation.model.AuthUiState
 
 @Composable
 internal fun AuthScreen(
     state: AuthUiState,
-    onMode: (AuthMode) -> Unit,
-    onSubmit: (String, String) -> Unit,
-    onGoogle: () -> Unit,
-    onClose: () -> Unit,
+    onIntent: (AuthIntent) -> Unit,
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     // Passwords deliberately never enter saved-instance-state or the ViewModel.
@@ -35,7 +49,11 @@ internal fun AuthScreen(
     }
     val newPassword = state.mode == AuthMode.SIGN_UP || state.mode == AuthMode.UPDATE_PASSWORD
     Column(
-        Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),
+        Modifier
+            .fillMaxSize()
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(title, style = MaterialTheme.typography.headlineSmall)
@@ -75,7 +93,7 @@ internal fun AuthScreen(
         if (state.isBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
         Button(
             onClick = {
-                onSubmit(email, password)
+                onIntent(AuthIntent.Submit(email, password))
                 password = ""
                 confirmation = ""
             },
@@ -93,15 +111,15 @@ internal fun AuthScreen(
             )
         }
         if (state.mode == AuthMode.SIGN_IN || state.mode == AuthMode.SIGN_UP) {
-            OutlinedButton(onClick = onGoogle, modifier = Modifier.fillMaxWidth(), enabled = state.isConfigured && !state.isBusy) {
+            OutlinedButton(onClick = { onIntent(AuthIntent.GoogleSignIn) }, modifier = Modifier.fillMaxWidth(), enabled = state.isConfigured && !state.isBusy) {
                 Text("เข้าสู่ระบบด้วย Google")
             }
-            TextButton(onClick = { onMode(if (state.mode == AuthMode.SIGN_IN) AuthMode.SIGN_UP else AuthMode.SIGN_IN) }, enabled = !state.isBusy) {
+            TextButton(onClick = { onIntent(AuthIntent.ChangeMode(if (state.mode == AuthMode.SIGN_IN) AuthMode.SIGN_UP else AuthMode.SIGN_IN)) }, enabled = !state.isBusy) {
                 Text(if (state.mode == AuthMode.SIGN_IN) "ยังไม่มีบัญชี? สมัครสมาชิก" else "มีบัญชีแล้ว? เข้าสู่ระบบ")
             }
         }
-        if (state.mode == AuthMode.SIGN_IN) TextButton(onClick = { onMode(AuthMode.RESET) }, enabled = !state.isBusy) { Text("ลืมรหัสผ่าน") }
-        if (state.mode == AuthMode.RESET) TextButton(onClick = { onMode(AuthMode.SIGN_IN) }, enabled = !state.isBusy) { Text("กลับไปเข้าสู่ระบบ") }
-        TextButton(onClick = onClose, enabled = !state.isBusy) { Text("กลับไปบันทึกน้ำ") }
+        if (state.mode == AuthMode.SIGN_IN) TextButton(onClick = { onIntent(AuthIntent.ChangeMode(AuthMode.RESET)) }, enabled = !state.isBusy) { Text("ลืมรหัสผ่าน") }
+        if (state.mode == AuthMode.RESET) TextButton(onClick = { onIntent(AuthIntent.ChangeMode(AuthMode.SIGN_IN)) }, enabled = !state.isBusy) { Text("กลับไปเข้าสู่ระบบ") }
+        TextButton(onClick = { onIntent(AuthIntent.Close) }, enabled = !state.isBusy) { Text("กลับไปบันทึกน้ำ") }
     }
 }

@@ -6,14 +6,14 @@ import android.security.keystore.KeyProperties
 import android.util.Base64
 import io.github.jan.supabase.auth.SessionManager
 import io.github.jan.supabase.auth.user.UserSession
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
 
 // Store refresh/access tokens encrypted with a non-exportable Android Keystore key.
 class EncryptedSessionManager(context: Context, storageName: String = "auth_session") : SessionManager {
@@ -31,6 +31,7 @@ class EncryptedSessionManager(context: Context, storageName: String = "auth_sess
             )
         }.generateKey()
     }
+
     override suspend fun saveSession(session: UserSession) = withContext(Dispatchers.IO) {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, key())
@@ -40,6 +41,7 @@ class EncryptedSessionManager(context: Context, storageName: String = "auth_sess
                 .putString("session", Base64.encodeToString(encrypted, Base64.NO_WRAP)).commit(),
         )
     }
+
     override suspend fun loadSession(): UserSession = withContext(Dispatchers.IO) {
         val encrypted = preferences.getString("session", null) ?: error("No saved session")
         val iv = preferences.getString("iv", null) ?: error("No saved session")
@@ -48,6 +50,7 @@ class EncryptedSessionManager(context: Context, storageName: String = "auth_sess
         val raw = cipher.doFinal(Base64.decode(encrypted, Base64.NO_WRAP)).toString(Charsets.UTF_8)
         json.decodeFromString(UserSession.serializer(), raw)
     }
+
     override suspend fun deleteSession() = withContext(Dispatchers.IO) {
         check(preferences.edit().clear().commit())
     }

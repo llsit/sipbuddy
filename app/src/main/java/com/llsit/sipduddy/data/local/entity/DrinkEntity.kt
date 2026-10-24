@@ -1,4 +1,5 @@
 package com.llsit.sipduddy.data.local.entity
+
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index

@@ -1,4 +1,5 @@
 package com.llsit.sipduddy.data.sync
+
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
@@ -6,11 +7,13 @@ import com.llsit.sipduddy.data.local.database.HydrationDatabase
 import com.llsit.sipduddy.data.local.entity.SyncMetadataEntity
 import com.llsit.sipduddy.domain.repository.AccountRepository
 import com.llsit.sipduddy.domain.usecase.SyncHydrationUseCase
-import java.time.Clock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import java.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
+
 class HydrationSyncWorker(
     context: Context,
     parameters: WorkerParameters,
@@ -23,7 +26,7 @@ class HydrationSyncWorker(
 ) : CoroutineWorker(context, parameters) {
     override suspend fun doWork(): Result {
         val owner = inputData.getString("owner")?.takeIf { it.isNotEmpty() } ?: return Result.success()
-        val active = withTimeoutOrNull(30_000) { accounts.owner.filterNotNull().first() } ?: return Result.retry()
+        val active = withTimeoutOrNull(30_000.milliseconds) { accounts.owner.filterNotNull().first() } ?: return Result.retry()
         if (active != owner) return Result.success()
         runtime.start(owner)
         return try {

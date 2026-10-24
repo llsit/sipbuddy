@@ -1,4 +1,5 @@
 package com.llsit.sipduddy.data.mapper
+
 import io.github.jan.supabase.auth.exception.AuthRestException
 import java.io.IOException
 

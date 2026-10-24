@@ -13,24 +13,26 @@ import com.llsit.sipduddy.domain.usecase.EditDrinkUseCase
 import com.llsit.sipduddy.domain.usecase.ObserveHydrationOverviewUseCase
 import com.llsit.sipduddy.domain.usecase.RestoreDrinkUseCase
 import com.llsit.sipduddy.domain.usecase.SaveHydrationSettingsUseCase
+import com.llsit.sipduddy.presentation.effect.HydrationEffect
+import com.llsit.sipduddy.presentation.intent.HydrationIntent
 import com.llsit.sipduddy.presentation.model.HydrationUiState
-import com.llsit.sipduddy.presentation.model.OverviewLoadState
 import com.llsit.sipduddy.presentation.model.UiMessage
-import java.util.concurrent.atomic.AtomicLong
+import com.llsit.sipduddy.presentation.mutation.HydrationMutation
+import com.llsit.sipduddy.presentation.reducer.HydrationReducer
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.atomic.AtomicLong
 
 class HydrationViewModel(
     observeHydrationOverviewUseCase: ObserveHydrationOverviewUseCase,
@@ -45,119 +47,141 @@ class HydrationViewModel(
     private val boundOwner = expectedOwner
     private fun isCurrentAccount() = accounts == null || accounts.owner.value == boundOwner
     private val retryVersion = MutableStateFlow(0)
-    private val isSaving = MutableStateFlow(false)
-    private val isAddSheetVisible = MutableStateFlow(false)
-    private val editingEntry = MutableStateFlow<DrinkEntry?>(null)
-    private val message = MutableStateFlow<UiMessage?>(null)
+    private val reducer = HydrationReducer()
+    private val mutableState = MutableStateFlow(HydrationUiState())
+    val state = mutableState.asStateFlow()
+
+    // Pending UI effects live in state until acknowledged, so backgrounding cannot lose Undo.
+    val effects: Flow<HydrationEffect> = state.map { current ->
+        current.message?.let { HydrationEffect.ShowMessage(it) } ?: HydrationEffect.DismissMessage
+    }.distinctUntilChanged()
+
+    private fun reduce(mutation: HydrationMutation) {
+        mutableState.update { reducer.reduce(it, mutation) }
+    }
+
     private val messageId = AtomicLong()
     private val actionMutex = Mutex()
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    // stateIn retains the loaded screen on resume; initial loading comes from HydrationUiState.
-    private val overview = retryVersion.flatMapLatest {
-        observeHydrationOverviewUseCase()
-            .filter { overview ->
-                isCurrentAccount() && (
-                    boundOwner == null ||
-                        (overview.settings.ownerId == boundOwner && overview.days.all { day -> day.entries.all { entry -> entry.ownerId == boundOwner } })
-                    )
+    init {
+        viewModelScope.launch {
+            retryVersion.collectLatest {
+                observeHydrationOverviewUseCase()
+                    .filter { overview ->
+                        isCurrentAccount() && (
+                            boundOwner == null ||
+                                (overview.settings.ownerId == boundOwner && overview.days.all { day -> day.entries.all { entry -> entry.ownerId == boundOwner } })
+                            )
+                    }
+                    .catch { error ->
+                        if (error is CancellationException) throw error
+                        reduce(HydrationMutation.LoadFailed)
+                    }
+                    .collect { reduce(HydrationMutation.Loaded(it)) }
             }
-            .map<_, OverviewLoadState> { OverviewLoadState.Loaded(it) }
-            .catch { exception ->
-                if (exception is CancellationException) throw exception
-                emit(OverviewLoadState.Failed)
-            }
+        }
     }
 
-    val state = combine(
-        overview,
-        isSaving,
-        isAddSheetVisible,
-        message,
-        editingEntry,
-    ) { loaded, saving, sheetVisible, currentMessage, editing ->
-        HydrationUiState(
-            loading = loaded is OverviewLoadState.Loading,
-            overview = (loaded as? OverviewLoadState.Loaded)?.overview,
-            isSaving = saving,
-            isAddSheetVisible = sheetVisible,
-            message = currentMessage,
-            editingEntry = editing,
-            loadError = if (loaded is OverviewLoadState.Failed) "อ่านข้อมูลไม่สำเร็จ กรุณาลองใหม่" else null,
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HydrationUiState())
+    fun onIntent(intent: HydrationIntent) {
+        if (!isCurrentAccount()) return
+        when (intent) {
+            HydrationIntent.Retry -> retry()
 
-    fun retry() {
+            HydrationIntent.OpenAddDrink -> showAddDrinkSheet()
+
+            is HydrationIntent.OpenEditDrink -> {
+                if (boundOwner == null || intent.entry.ownerId == boundOwner) showEditDrinkSheet(intent.entry)
+            }
+
+            HydrationIntent.DismissDrinkEditor -> dismissAddDrinkSheet()
+
+            is HydrationIntent.SaveDrink -> saveDrink(intent.drink, intent.amountMl)
+
+            is HydrationIntent.DeleteDrink -> {
+                reduce(HydrationMutation.DeleteRequested(null))
+                delete(intent.id)
+            }
+
+            is HydrationIntent.UndoDelete -> undoDelete(intent.messageId)
+
+            is HydrationIntent.SaveSettings -> save(intent.settings)
+
+            is HydrationIntent.MessageHandled -> clearMessage(intent.id)
+
+            is HydrationIntent.Navigate -> reduce(HydrationMutation.Navigated(intent.destination))
+
+            is HydrationIntent.RequestDelete -> if (!state.value.isSaving) reduce(HydrationMutation.DeleteRequested(intent.id))
+
+            HydrationIntent.DismissDelete -> reduce(HydrationMutation.DeleteRequested(null))
+        }
+    }
+
+    private fun retry() {
+        reduce(HydrationMutation.RetryStarted)
         retryVersion.update { it + 1 }
     }
 
-    fun showAddDrinkSheet() {
-        if (!isSaving.value) {
-            editingEntry.value = null
-            isAddSheetVisible.value = true
-        }
+    private fun showAddDrinkSheet() {
+        reduce(HydrationMutation.EditorOpened(null))
     }
 
-    fun showEditDrinkSheet(entry: DrinkEntry) {
-        if (!isSaving.value) {
-            editingEntry.value = entry
-            isAddSheetVisible.value = true
-        }
+    private fun showEditDrinkSheet(entry: DrinkEntry) {
+        reduce(HydrationMutation.EditorOpened(entry))
     }
 
-    fun saveDrink(drink: DrinkType, amountMl: Int) {
-        val editing = editingEntry.value
+    private fun saveDrink(drink: DrinkType, amountMl: Int) {
+        val editing = state.value.editingEntry
         if (editing == null) {
             add(drink, amountMl)
         } else {
             launchAction {
                 editDrinkUseCase(editing.id, drink, amountMl)
-                isAddSheetVisible.value = false
-                editingEntry.value = null
+                reduce(HydrationMutation.EditorClosed)
                 showMessage("แก้ไขรายการแล้ว")
             }
         }
     }
 
-    fun dismissAddDrinkSheet() {
-        if (!isSaving.value) isAddSheetVisible.value = false
+    private fun dismissAddDrinkSheet() {
+        if (!state.value.isSaving) reduce(HydrationMutation.EditorClosed)
     }
 
-    fun add(drink: DrinkType, amountMl: Int) = launchAction {
+    private fun add(drink: DrinkType, amountMl: Int) = launchAction {
         addDrinkUseCase(drink, amountMl, boundOwner)
-        isAddSheetVisible.value = false
+        reduce(HydrationMutation.EditorClosed)
         showMessage("บันทึกเครื่องดื่มแล้ว")
     }
 
-    fun delete(id: Long) = launchAction {
+    private fun delete(id: Long) = launchAction {
         val deleted = deleteDrinkUseCase(id)
-        if (deleted != null) message.value = UiMessage(messageId.incrementAndGet(), "ลบรายการแล้ว", deleted)
+        if (deleted != null) reduce(HydrationMutation.MessageShown(UiMessage(messageId.incrementAndGet(), "ลบรายการแล้ว", deleted)))
     }
 
-    fun undoDelete(id: Long) {
+    private fun undoDelete(id: Long) {
         if (!isCurrentAccount()) return
-        val pending = message.value?.takeIf { it.id == id && it.undoEntry != null } ?: return
-        if (!message.compareAndSet(pending, null)) return
+        val pending = state.value.message?.takeIf { it.id == id && it.undoEntry != null } ?: return
+        if (state.value.message != pending) return
+        reduce(HydrationMutation.MessageHandled(pending.id))
         viewModelScope.launch {
             // Queue a pressed Undo rather than dropping it while another write holds the mutex.
             actionMutex.withLock {
                 if (!isCurrentAccount()) return@withLock
-                isSaving.value = true
+                reduce(HydrationMutation.Saving(true))
                 try {
                     val restored = restoreDrinkUseCase(requireNotNull(pending.undoEntry))
                     showMessage(if (restored) "คืนรายการแล้ว" else "รายการนี้มีอยู่แล้ว")
                 } catch (exception: CancellationException) {
                     throw exception
                 } catch (_: Exception) {
-                    message.value = pending.copy(id = messageId.incrementAndGet(), text = "คืนรายการไม่สำเร็จ ลองอีกครั้ง")
+                    reduce(HydrationMutation.MessageShown(pending.copy(id = messageId.incrementAndGet(), text = "คืนรายการไม่สำเร็จ ลองอีกครั้ง")))
                 } finally {
-                    isSaving.value = false
+                    reduce(HydrationMutation.Saving(false))
                 }
             }
         }
     }
 
-    fun save(settings: HydrationSettings) = launchAction {
+    private fun save(settings: HydrationSettings) = launchAction {
         val result = saveHydrationSettingsUseCase(settings, boundOwner)
         showMessage(
             if (result == SaveHydrationSettingsResult.SAVED) {
@@ -168,17 +192,17 @@ class HydrationViewModel(
         )
     }
 
-    fun clearMessage(id: Long) {
-        message.update { if (it?.id == id) null else it }
+    private fun clearMessage(id: Long) {
+        reduce(HydrationMutation.MessageHandled(id))
     }
 
     private fun showMessage(text: String) {
-        message.value = UiMessage(messageId.incrementAndGet(), text)
+        reduce(HydrationMutation.MessageShown(UiMessage(messageId.incrementAndGet(), text)))
     }
 
     private fun launchAction(action: suspend () -> Unit) {
         if (!isCurrentAccount() || !actionMutex.tryLock()) return
-        isSaving.value = true
+        reduce(HydrationMutation.Saving(true))
         viewModelScope.launch {
             try {
                 if (isCurrentAccount()) action()
@@ -189,7 +213,7 @@ class HydrationViewModel(
             } catch (_: Exception) {
                 showMessage("บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง")
             } finally {
-                isSaving.value = false
+                reduce(HydrationMutation.Saving(false))
                 actionMutex.unlock()
             }
         }

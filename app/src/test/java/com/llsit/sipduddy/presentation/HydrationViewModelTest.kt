@@ -16,6 +16,7 @@ import com.llsit.sipduddy.fake.FakeDateProvider
 import com.llsit.sipduddy.fake.FakeDrinkRepository
 import com.llsit.sipduddy.fake.FakeHydrationSettingsRepository
 import com.llsit.sipduddy.fake.FakeReminderScheduler
+import com.llsit.sipduddy.presentation.intent.HydrationIntent
 import com.llsit.sipduddy.rule.MainDispatcherRule
 import java.io.IOException
 import java.time.Clock
@@ -25,6 +26,7 @@ import java.time.ZoneOffset
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -90,8 +92,8 @@ class HydrationViewModelTest {
         val repository = FakeDrinkRepository()
         val viewModel = createViewModel(repository)
         assertFalse(viewModel.state.value.loading)
-        viewModel.showAddDrinkSheet()
-        viewModel.add(DrinkType.WATER, 250)
+        viewModel.onIntent(HydrationIntent.OpenAddDrink)
+        viewModel.onIntent(HydrationIntent.SaveDrink(DrinkType.WATER, 250))
         runCurrent()
         assertEquals(250L, viewModel.state.value.overview?.totalMl)
         assertFalse(viewModel.state.value.isAddSheetVisible)
@@ -102,14 +104,14 @@ class HydrationViewModelTest {
     fun writeFailureKeepsSheetOpenAndAllowsAnotherAttempt() = runTest {
         val repository = FakeDrinkRepository().apply { writeFailure = IOException("disk full") }
         val viewModel = createViewModel(repository)
-        viewModel.showAddDrinkSheet()
-        viewModel.add(DrinkType.WATER, 250)
+        viewModel.onIntent(HydrationIntent.OpenAddDrink)
+        viewModel.onIntent(HydrationIntent.SaveDrink(DrinkType.WATER, 250))
         runCurrent()
         assertTrue(viewModel.state.value.isAddSheetVisible)
         assertNotNull(viewModel.state.value.message)
         assertFalse(viewModel.state.value.isSaving)
         repository.writeFailure = null
-        viewModel.add(DrinkType.WATER, 250)
+        viewModel.onIntent(HydrationIntent.SaveDrink(DrinkType.WATER, 250))
         runCurrent()
         assertFalse(viewModel.state.value.isAddSheetVisible)
     }
@@ -119,8 +121,8 @@ class HydrationViewModelTest {
         val gate = CompletableDeferred<Unit>()
         val repository = FakeDrinkRepository().apply { addGate = gate }
         val viewModel = createViewModel(repository)
-        viewModel.add(DrinkType.WATER, 250)
-        viewModel.add(DrinkType.WATER, 250)
+        viewModel.onIntent(HydrationIntent.SaveDrink(DrinkType.WATER, 250))
+        viewModel.onIntent(HydrationIntent.SaveDrink(DrinkType.WATER, 250))
         runCurrent()
         assertEquals(1, repository.addCalls)
         assertTrue(viewModel.state.value.isSaving)
@@ -137,7 +139,7 @@ class HydrationViewModelTest {
         val viewModel = createViewModel(repository)
         assertNotNull(viewModel.state.value.loadError)
         repository.observationFailure = null
-        viewModel.retry()
+        viewModel.onIntent(HydrationIntent.Retry)
         runCurrent()
         assertNull(viewModel.state.value.loadError)
         assertNotNull(viewModel.state.value.overview)
@@ -146,17 +148,17 @@ class HydrationViewModelTest {
     @Test
     fun oldSnackbarAcknowledgementCannotClearNewMessage() = runTest {
         val viewModel = createViewModel()
-        viewModel.add(DrinkType.WATER, 0)
+        viewModel.onIntent(HydrationIntent.SaveDrink(DrinkType.WATER, 0))
         runCurrent()
         val firstId = viewModel.state.value.message!!.id
-        viewModel.add(DrinkType.WATER, 0)
+        viewModel.onIntent(HydrationIntent.SaveDrink(DrinkType.WATER, 0))
         runCurrent()
         val secondId = viewModel.state.value.message!!.id
         assertNotEquals(firstId, secondId)
-        viewModel.clearMessage(firstId)
+        viewModel.onIntent(HydrationIntent.MessageHandled(firstId))
         runCurrent()
         assertEquals(secondId, viewModel.state.value.message?.id)
-        viewModel.clearMessage(secondId)
+        viewModel.onIntent(HydrationIntent.MessageHandled(secondId))
         runCurrent()
         assertNull(viewModel.state.value.message)
     }
@@ -166,7 +168,7 @@ class HydrationViewModelTest {
         val settings = FakeHydrationSettingsRepository()
         val scheduler = FakeReminderScheduler().apply { failure = SecurityException() }
         val viewModel = createViewModel(settings = settings, scheduler = scheduler)
-        viewModel.save(HydrationSettings(3000))
+        viewModel.onIntent(HydrationIntent.SaveSettings(HydrationSettings(3000)))
         runCurrent()
         assertEquals(3000, viewModel.state.value.overview?.settings?.goalMl)
         assertTrue(viewModel.state.value.message!!.text.contains("ตั้งเวลาเตือนไม่สำเร็จ"))
@@ -176,12 +178,12 @@ class HydrationViewModelTest {
     fun cancellationDoesNotBecomeAnErrorAndReleasesBusyState() = runTest {
         val repository = FakeDrinkRepository().apply { writeFailure = CancellationException() }
         val viewModel = createViewModel(repository)
-        viewModel.add(DrinkType.WATER, 250)
+        viewModel.onIntent(HydrationIntent.SaveDrink(DrinkType.WATER, 250))
         runCurrent()
         assertNull(viewModel.state.value.message)
         assertFalse(viewModel.state.value.isSaving)
         repository.writeFailure = null
-        viewModel.add(DrinkType.WATER, 250)
+        viewModel.onIntent(HydrationIntent.SaveDrink(DrinkType.WATER, 250))
         runCurrent()
         assertEquals(1, repository.entries.value.size)
     }
@@ -190,15 +192,15 @@ class HydrationViewModelTest {
         val entry = DrinkEntry(8, DrinkType.TEA, 300, clock.millis())
         val repo = FakeDrinkRepository().apply { entries.value = listOf(entry) }
         val vm = createViewModel(repo)
-        vm.delete(8)
+        vm.onIntent(HydrationIntent.DeleteDrink(8))
         runCurrent()
         val id = vm.state.value.message!!.id
         assertTrue(repo.entries.value.isEmpty())
-        vm.undoDelete(id - 1)
+        vm.onIntent(HydrationIntent.UndoDelete(id - 1))
         runCurrent()
         assertTrue(repo.entries.value.isEmpty())
-        vm.undoDelete(id)
-        vm.undoDelete(id)
+        vm.onIntent(HydrationIntent.UndoDelete(id))
+        vm.onIntent(HydrationIntent.UndoDelete(id))
         runCurrent()
         assertEquals(listOf(entry), repo.entries.value)
         assertEquals(300L, vm.state.value.overview!!.totalMl)
@@ -208,14 +210,14 @@ class HydrationViewModelTest {
         val entry = DrinkEntry(8, DrinkType.WATER, 250, clock.millis())
         val repo = FakeDrinkRepository().apply { entries.value = listOf(entry) }
         val vm = createViewModel(repo)
-        vm.delete(8)
+        vm.onIntent(HydrationIntent.DeleteDrink(8))
         runCurrent()
         repo.writeFailure = IOException()
-        vm.undoDelete(vm.state.value.message!!.id)
+        vm.onIntent(HydrationIntent.UndoDelete(vm.state.value.message!!.id))
         runCurrent()
         assertEquals(entry, vm.state.value.message!!.undoEntry)
         repo.writeFailure = null
-        vm.undoDelete(vm.state.value.message!!.id)
+        vm.onIntent(HydrationIntent.UndoDelete(vm.state.value.message!!.id))
         runCurrent()
         assertEquals(listOf(entry), repo.entries.value)
     }
@@ -224,13 +226,13 @@ class HydrationViewModelTest {
         val entry = DrinkEntry(8, DrinkType.WATER, 250, clock.millis() - 86400000)
         val repo = FakeDrinkRepository().apply { entries.value = listOf(entry) }
         val vm = createViewModel(repo)
-        vm.showEditDrinkSheet(entry)
+        vm.onIntent(HydrationIntent.OpenEditDrink(entry))
         repo.writeFailure = IOException()
-        vm.saveDrink(DrinkType.MILK, 400)
+        vm.onIntent(HydrationIntent.SaveDrink(DrinkType.MILK, 400))
         runCurrent()
         assertTrue(vm.state.value.isAddSheetVisible)
         repo.writeFailure = null
-        vm.saveDrink(DrinkType.MILK, 400)
+        vm.onIntent(HydrationIntent.SaveDrink(DrinkType.MILK, 400))
         runCurrent()
         assertFalse(vm.state.value.isAddSheetVisible)
         assertEquals(listOf(entry.copy(drink = DrinkType.MILK, amountMl = 400)), repo.entries.value)
@@ -241,14 +243,14 @@ class HydrationViewModelTest {
         val entry = DrinkEntry(8, DrinkType.WATER, 250, clock.millis())
         val repo = FakeDrinkRepository().apply { entries.value = listOf(entry) }
         val vm = createViewModel(repo)
-        vm.delete(8)
+        vm.onIntent(HydrationIntent.DeleteDrink(8))
         runCurrent()
         val id = vm.state.value.message!!.id
         val gate = CompletableDeferred<Unit>()
         repo.addGate = gate
-        vm.add(DrinkType.TEA, 150)
+        vm.onIntent(HydrationIntent.SaveDrink(DrinkType.TEA, 150))
         runCurrent()
-        vm.undoDelete(id)
+        vm.onIntent(HydrationIntent.UndoDelete(id))
         runCurrent()
         assertTrue(repo.entries.value.isEmpty())
         gate.complete(Unit)
@@ -286,7 +288,7 @@ class HydrationViewModelTest {
         accounts.owner.value = "B"
         val foreign = own.copy(id = 2, amountMl = 999, ownerId = "B")
         repo.entries.value = listOf(foreign)
-        vm.add(DrinkType.TEA, 150)
+        vm.onIntent(HydrationIntent.SaveDrink(DrinkType.TEA, 150))
         runCurrent()
         assertEquals(listOf(foreign), repo.entries.value)
         assertEquals(250L, vm.state.value.overview?.totalMl)
@@ -295,5 +297,30 @@ class HydrationViewModelTest {
         repo.entries.value = listOf(foreign.copy(amountMl = 1000))
         runCurrent()
         assertEquals(250L, vm.state.value.overview?.totalMl)
+    }
+
+    @Test fun pendingEffectsSurviveAbsentCollectorAndStopReplayingAfterAcknowledgement() = runTest {
+        val vm = createViewModel(collectState = false)
+        vm.onIntent(HydrationIntent.SaveDrink(DrinkType.WATER, 0))
+        runCurrent()
+        val first = vm.effects.first() as com.llsit.sipduddy.presentation.effect.HydrationEffect.ShowMessage
+        val replay = vm.effects.first()
+        assertEquals(first, replay)
+        vm.onIntent(HydrationIntent.MessageHandled(first.message.id))
+        assertEquals(com.llsit.sipduddy.presentation.effect.HydrationEffect.DismissMessage, vm.effects.first())
+    }
+
+    @Test fun navigationDeleteConfirmationAndEditorAreDrivenByIntents() = runTest {
+        val vm = createViewModel()
+        vm.onIntent(HydrationIntent.Navigate(com.llsit.sipduddy.presentation.model.AppDestination.HISTORY))
+        vm.onIntent(HydrationIntent.RequestDelete(8))
+        assertEquals(com.llsit.sipduddy.presentation.model.AppDestination.HISTORY, vm.state.value.destination)
+        assertEquals(8L, vm.state.value.deletingId)
+        vm.onIntent(HydrationIntent.DismissDelete)
+        assertNull(vm.state.value.deletingId)
+        vm.onIntent(HydrationIntent.OpenAddDrink)
+        assertTrue(vm.state.value.isAddSheetVisible)
+        vm.onIntent(HydrationIntent.DismissDrinkEditor)
+        assertFalse(vm.state.value.isAddSheetVisible)
     }
 }

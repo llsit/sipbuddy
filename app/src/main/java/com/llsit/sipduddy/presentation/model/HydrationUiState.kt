@@ -4,6 +4,8 @@ import com.llsit.sipduddy.domain.model.HydrationOverview
 
 data class HydrationUiState(
     val loading: Boolean = true,
+    val destination: AppDestination = AppDestination.TODAY,
+    val deletingId: Long? = null,
     val overview: HydrationOverview? = null,
     val isSaving: Boolean = false,
     val isAddSheetVisible: Boolean = false,

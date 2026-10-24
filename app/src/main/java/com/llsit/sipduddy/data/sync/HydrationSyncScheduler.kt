@@ -1,8 +1,18 @@
 package com.llsit.sipduddy.data.sync
+
 import android.content.Context
-import androidx.work.*
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.llsit.sipduddy.domain.repository.SyncRequestScheduler
 import java.util.concurrent.TimeUnit
+
 class HydrationSyncScheduler(private val context: Context) : SyncRequestScheduler {
     private val manager get() = WorkManager.getInstance(context)
     private val constraints = Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
@@ -13,6 +23,7 @@ class HydrationSyncScheduler(private val context: Context) : SyncRequestSchedule
         // Appending preserves a wakeup when a local write lands just as a running sync finishes.
         manager.enqueueUniqueWork("hydration-sync:$owner", if (force) ExistingWorkPolicy.REPLACE else ExistingWorkPolicy.APPEND_OR_REPLACE, work)
     }
+
     override fun activate(owner: String) {
         if (owner.isEmpty()) {
             manager.cancelUniqueWork("hydration-periodic-sync")

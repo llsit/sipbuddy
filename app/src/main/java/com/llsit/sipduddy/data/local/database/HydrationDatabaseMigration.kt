@@ -1,7 +1,9 @@
 package com.llsit.sipduddy.data.local.database
+
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import java.util.UUID
+
 object HydrationDatabaseMigration {
     val FROM_1_TO_2 = object : Migration(1, 2) {
         override fun migrate(db: SupportSQLiteDatabase) {

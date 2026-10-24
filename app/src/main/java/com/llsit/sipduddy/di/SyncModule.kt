@@ -31,5 +31,5 @@ val syncModule = module {
     factory { RequestHydrationSyncUseCase(get()) }
     factory { ImportGuestHistoryUseCase(get()) }
     single { HydrationSyncCoordinator(get(), get(), get(), get(), get(), get()) }
-    viewModel { parameters -> SyncViewModel(get(), get(), get(), parameters.getOrNull<String>()) }
+    viewModel { parameters -> SyncViewModel(get(), get(), get(), parameters.getOrNull<String>(), get()) }
 }

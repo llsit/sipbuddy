@@ -1,4 +1,5 @@
 package com.llsit.sipduddy.data.repository
+
 import androidx.room.withTransaction
 import com.llsit.sipduddy.data.local.database.HydrationDatabase
 import com.llsit.sipduddy.data.sync.SyncRuntimeState
@@ -6,9 +7,12 @@ import com.llsit.sipduddy.domain.model.SyncStatus
 import com.llsit.sipduddy.domain.repository.AccountRepository
 import com.llsit.sipduddy.domain.repository.HydrationSyncRepository
 import com.llsit.sipduddy.domain.repository.SyncRequestScheduler
-import java.util.UUID
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import java.util.UUID
+
 class DefaultHydrationSyncRepository(
     private val database: HydrationDatabase,
     private val accounts: AccountRepository,
@@ -37,9 +41,11 @@ class DefaultHydrationSyncRepository(
             )
         }
     }
+
     override fun requestSync() {
         accounts.owner.value?.takeIf { it.isNotEmpty() }?.let { scheduler.request(it, force = true) }
     }
+
     override suspend fun importGuestHistory(expectedOwner: String): Int {
         require(expectedOwner.isNotEmpty() && accounts.owner.value == expectedOwner) { "บัญชีเปลี่ยนแล้ว กรุณาลองใหม่" }
         val count = database.withTransaction {
