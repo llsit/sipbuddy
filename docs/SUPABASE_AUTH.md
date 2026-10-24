@@ -30,3 +30,5 @@ Unit tests cover email normalization, password rules, duplicate submission, conf
 References: https://supabase.com/docs/reference/kotlin/installing and https://supabase.com/docs/guides/auth/social-login/auth-google
 
 Instrumented tests target the separate debuggable `com.llsit.sipduddy.qa` package (`connectedQaAndroidTest`) so automatic test cleanup cannot uninstall the regular diary app. Never change testBuildType to debug on a device containing personal records.
+
+Session persistence uses encrypted Preferences DataStore with legacy migration; see [SESSION_DATASTORE.md](SESSION_DATASTORE.md).

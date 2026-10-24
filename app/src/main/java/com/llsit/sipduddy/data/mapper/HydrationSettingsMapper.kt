@@ -2,12 +2,12 @@ package com.llsit.sipduddy.data.mapper
 
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
+import com.llsit.sipduddy.data.local.preferences.HydrationPreferenceKeys as Keys
 import com.llsit.sipduddy.domain.model.HydrationSettings
 import com.llsit.sipduddy.domain.model.QuietHours
 import com.llsit.sipduddy.domain.model.ReminderSettings
 import com.llsit.sipduddy.domain.model.ReminderTime
 import java.time.LocalTime
-import com.llsit.sipduddy.data.local.preferences.HydrationPreferenceKeys as Keys
 
 class HydrationSettingsMapper {
     fun toDomain(preferences: Preferences): HydrationSettings {

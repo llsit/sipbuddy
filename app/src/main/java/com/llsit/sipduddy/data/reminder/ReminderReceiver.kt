@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.llsit.sipduddy.domain.usecase.HandleReminderUseCase
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,7 +14,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import kotlin.time.Duration.Companion.milliseconds
 
 class ReminderReceiver :
     BroadcastReceiver(),

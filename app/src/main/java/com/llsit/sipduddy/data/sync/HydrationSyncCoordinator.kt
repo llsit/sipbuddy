@@ -5,6 +5,7 @@ import com.llsit.sipduddy.domain.repository.AccountRepository
 import com.llsit.sipduddy.domain.repository.LocalSettingsSyncRepository
 import com.llsit.sipduddy.domain.repository.SyncRequestScheduler
 import com.llsit.sipduddy.domain.usecase.RestoreReminderUseCase
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -17,7 +18,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.milliseconds
 
 class HydrationSyncCoordinator(
     private val accounts: AccountRepository,
@@ -40,7 +40,8 @@ class HydrationSyncCoordinator(
                                 restoreReminder()
                             } catch (cancelled: CancellationException) {
                                 throw cancelled
-                            } catch (_: Exception) { /* Platform receiver retries the saved schedule. */
+                            } catch (_: Exception) {
+                                /* Platform receiver retries the saved schedule. */
                             }
                         }
                     }

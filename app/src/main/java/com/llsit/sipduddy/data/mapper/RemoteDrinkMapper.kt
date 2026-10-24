@@ -2,6 +2,7 @@ package com.llsit.sipduddy.data.mapper
 
 import com.llsit.sipduddy.domain.model.DrinkType
 import com.llsit.sipduddy.domain.model.SyncRecord
+import java.util.UUID
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
@@ -9,7 +10,6 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import kotlinx.serialization.json.put
-import java.util.UUID
 
 class RemoteDrinkMapper {
     fun decode(value: JsonObject): SyncRecord {

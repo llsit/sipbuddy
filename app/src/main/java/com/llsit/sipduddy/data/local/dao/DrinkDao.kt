@@ -6,8 +6,8 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import com.llsit.sipduddy.data.local.entity.DrinkEntity
-import kotlinx.coroutines.flow.Flow
 import java.util.UUID
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DrinkDao {

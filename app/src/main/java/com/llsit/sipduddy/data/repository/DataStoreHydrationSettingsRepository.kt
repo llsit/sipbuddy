@@ -11,6 +11,7 @@ import com.llsit.sipduddy.domain.model.SettingsSyncRecord
 import com.llsit.sipduddy.domain.repository.AccountRepository
 import com.llsit.sipduddy.domain.repository.HydrationSettingsRepository
 import com.llsit.sipduddy.domain.repository.LocalSettingsSyncRepository
+import java.util.UUID
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -18,7 +19,6 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import java.util.UUID
 
 class DataStoreHydrationSettingsRepository(
     private val dataStore: DataStore<Preferences>,
@@ -29,7 +29,7 @@ class DataStoreHydrationSettingsRepository(
     LocalSettingsSyncRepository {
     private fun key(owner: String) = stringPreferencesKey("account_settings_v1:$owner")
     private fun record(owner: String, preferences: Preferences): SettingsSyncRecord = preferences[key(owner)]?.let { syncMapper.decode(owner, it) }
-    // Legacy shared settings belong to the guest workspace only.
+        // Legacy shared settings belong to the guest workspace only.
         ?: SettingsSyncRecord(owner, if (owner.isEmpty()) mapper.toDomain(preferences) else HydrationSettings())
 
     @OptIn(ExperimentalCoroutinesApi::class)

@@ -81,3 +81,5 @@ After adding or editing Kotlin/Gradle Kotlin code, run:
 Use Android Studio Reformat Code for Android XML. Generated build/cache folders and private configuration are excluded from formatting. `AGENTS.md` and `.cursor/rules/format-and-imports.mdc` require formatting and import cleanup after every agent code change.
 
 MVI presentation flow and migration details: [docs/MVI.md](docs/MVI.md).
+
+Supabase sessions use encrypted Preferences DataStore with automatic legacy SharedPreferences migration; see [docs/SESSION_DATASTORE.md](docs/SESSION_DATASTORE.md).

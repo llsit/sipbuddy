@@ -7,12 +7,12 @@ import com.llsit.sipduddy.data.local.database.HydrationDatabase
 import com.llsit.sipduddy.data.local.entity.SyncMetadataEntity
 import com.llsit.sipduddy.domain.repository.AccountRepository
 import com.llsit.sipduddy.domain.usecase.SyncHydrationUseCase
+import java.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
-import java.time.Clock
-import kotlin.time.Duration.Companion.milliseconds
 
 class HydrationSyncWorker(
     context: Context,

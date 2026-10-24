@@ -1,16 +1,15 @@
 package com.llsit.sipduddy.data.auth
 
-import android.content.Context
 import com.llsit.sipduddy.BuildConfig
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.FlowType
+import io.github.jan.supabase.auth.SessionManager
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.logging.LogLevel
 import io.github.jan.supabase.postgrest.Postgrest
 import io.ktor.client.engine.okhttp.OkHttp
 
-class SupabaseClientProvider(context: Context) {
-    val sessionManager = EncryptedSessionManager(context)
+class SupabaseClientProvider(val sessionManager: SessionManager) {
     val client = if (BuildConfig.SUPABASE_URL.isBlank() || BuildConfig.SUPABASE_PUBLISHABLE_KEY.isBlank()) {
         null
     } else {

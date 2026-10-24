@@ -19,6 +19,7 @@ import com.llsit.sipduddy.presentation.model.HydrationUiState
 import com.llsit.sipduddy.presentation.model.UiMessage
 import com.llsit.sipduddy.presentation.mutation.HydrationMutation
 import com.llsit.sipduddy.presentation.reducer.HydrationReducer
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +33,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.util.concurrent.atomic.AtomicLong
 
 class HydrationViewModel(
     observeHydrationOverviewUseCase: ObserveHydrationOverviewUseCase,
